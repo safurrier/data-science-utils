@@ -377,7 +377,77 @@ class TargetAssociatedFeatureValueAggregator(TransformerMixin):
                                              prefix=self.prefix, suffix=self.suffix)
 
 
-class DataFrameNullMapFill(BaseEstimator, TransformerMixin):
+class DFDummyMapTransformer(TransformerMixin):
+    """
+    From a dictionary mapping of {column:[list of feature values]}, create dummy columns
+    for each pair of column:feature value. Return binary column columns_feature_value where
+    1 indicates presence of feature value and 0 its absence
+    """
+
+    def __init__(self, dummy_map=None, remove_original=True, verbose=1):
+        """
+        Parameters
+        ----------
+        dummy_map: dict
+            Nested dictionary of the form {basefeature:[feature1, feature2, feature3]}
+        remove_original: bool
+            Boolean flag to remove the columns that will be one hot encoded.
+            Default is True. False will one hot encode but keep the original columns as well
+        verbose: int
+            Verbosity of output. Default is 1, which prints out base features and interacting
+            terms in interactions_dict_map that are not present in the data. Set to None to
+            ignore this.
+        """
+        self.dummy_map = dummy_map
+        self.verbose = verbose
+        self.remove_original = remove_original
+
+    def fit(self, X, y=None):
+        ## Check which base features are present in the data
+        base_feats = [key for key in self.dummy_map.keys()]
+        present_base_feats = [key for key in self.dummy_map.keys() if key in X.columns.values.tolist()]
+        non_present_base_feats = list(set(base_feats).difference(present_base_feats))
+
+        if self.verbose == 1:
+            if non_present_base_feats:
+                print(f'Warning:\nThe following base features are not present in the data: {non_present_base_feats}')
+        ## Set attributes
+        self.present_base_feats = present_base_feats
+        self.non_present_base_feats = non_present_base_feats
+
+        # Extract one hot columns to keep
+        # By joining each key column with each feature value on "_"
+        _one_hot_cols_to_keep = []
+        for key, values in self.dummy_map.items():
+            for value in values:
+                _one_hot_cols_to_keep.append("_".join([key, value]))
+        self._one_hot_cols_to_keep = _one_hot_cols_to_keep
+
+        return self
+
+    def transform(self, X):
+        try:
+            # Extract dummy columns
+            self.one_hot_encoded_cols = pd.get_dummies(X[self.present_base_feats])
+            # Only keep those specified in the map
+            # Might throw key error here
+            self.one_hot_encoded_cols = self.one_hot_encoded_cols[self._one_hot_cols_to_keep]
+
+            if self.remove_original:
+                # Remove the encoded columns from original
+                keep_cols = list(set(X.columns.values.tolist()).difference(self.present_base_feats))
+                ordered_keep_cols = [column for column in X.columns.values.tolist() if column in keep_cols]
+                X_transform = X[ordered_keep_cols]
+            else:
+                # Else keep all columns
+                X_transform = X
+            # Merge encoded cols back onto data
+            X_transform = pd.merge(X_transform, self.one_hot_encoded_cols, left_index=True, right_index=True)
+            return X_transform
+        except AttributeError:
+            print('Must use .fit() method before transforming') 
+
+class DFNullMapFill(BaseEstimator, TransformerMixin):
     """ Given a dataframe and a dictionary mapping {column:null_fill_value}, replace the
         column values where null with specified value
 
@@ -454,84 +524,6 @@ class DataFrameNullMapFill(BaseEstimator, TransformerMixin):
         X_transformed = X_copy.fillna(value=self.null_column_fill_map)
         return X_transformed
 
-## Same as DataFrameNullMapFill but with proper naming convention
-class DFNullMapFill(BaseEstimator, TransformerMixin):
-    """ Given a dataframe and a dictionary mapping {column:null_fill_value}, replace the
-        column values where null with specified value
-
-        Example:
-        df = pd.DataFrame([[np.nan, 2, np.nan, 0],
-                           [3, 4, np.nan, 1],
-                           [np.nan, np.nan, np.nan, 5],
-                           [np.nan, 3, np.nan, 4]],
-                           columns=list('ABCD'))
-         df
-             A    B   C  D
-        0  NaN  2.0 NaN  0
-        1  3.0  4.0 NaN  1
-        2  NaN  NaN NaN  5
-        3  NaN  3.0 NaN  4
-
-        filler = DataFrameNullFill(null_column_fill_map={'A': 0, 'B': 1, 'C': 2, 'D': 3})
-
-        filler.fit(df)
-
-        df = filler.transform(df)
-
-            A   B   C   D
-        0   0.0 2.0 2.0 0
-        1   3.0 4.0 2.0 1
-        2   0.0 1.0 2.0 5
-        3   0.0 3.0 2.0 4
-    """
-
-    def __init__(self, null_column_fill_map=None):
-        """
-        Parameters
-        ----------
-        null_column_fill_map: dict
-            A dictionary mapping {column name: nan fill value}
-            E.g. {'A': 0, 'B': 1, 'C': 2, 'D': 3})
-
-        """
-        if not null_column_fill_map:
-            print('Specify a null_column_fill_map')
-        assert isinstance(null_column_fill_map, dict)
-        self.null_column_fill_map = null_column_fill_map
-
-    def fit(self, X, y=None):
-        original_set_with_copy_setting = pd.options.mode.chained_assignment
-        # Disable SettingWithCopy Warning
-        pd.options.mode.chained_assignment = None
-        assert isinstance(X, pd.DataFrame)
-        # First, if there are any Categorical Dtypes, add the fill value
-        # to the categories
-        X_categorical = X.select_dtypes(include='category')
-        # Get list of categorical columns
-        categorical_cols = X_categorical.columns.values.tolist()
-
-        # Find out which categorical columns have a null fill specified
-        categorical_fill_map = {key:value for key, value in self.null_column_fill_map.items()
-                                if key in categorical_cols}
-
-        # For each of those, add the fill value as a category
-        for column in list(categorical_fill_map.keys()):
-            # If fill value is not in categories, add it
-            if categorical_fill_map[column] not in X_categorical[column].cat.categories.values.tolist():
-                X_categorical[column] = X_categorical[column].cat.add_categories([categorical_fill_map[column]])
-
-        # Replace the updated columns
-        X[categorical_cols] = X_categorical[categorical_cols]
-        # Set state and return to original SettingWithCopy Warning setting
-        pd.options.mode.chained_assignment = original_set_with_copy_setting
-        self.is_fit=True
-        return self
-
-    def transform(self, X, y=None):
-        X_copy = X
-        X_transformed = X_copy.fillna(value=self.null_column_fill_map)
-        return X_transformed    
-
 class DFDummyTransformer(TransformerMixin):
     # Transforms dummy variables from a list of columns
 
@@ -543,31 +535,31 @@ class DFDummyTransformer(TransformerMixin):
         if not self.columns:
             self.already_binary_cols = df_binary_columns_list(X)
             self.cols_to_transform = list(set(X.columns.values.tolist()).difference(self.already_binary_cols))
-            # Encode the rest of the columns 
+            # Encode the rest of the columns
             self.dummy_encoded_cols = pd.get_dummies(X[self.cols_to_transform])
         if self.columns:
             self.cols_to_transform = self.columns
-            # Encode the rest of the columns 
+            # Encode the rest of the columns
             self.dummy_encoded_cols = pd.get_dummies(X[self.cols_to_transform])
         return self
 
     def transform(self, X):
         # assumes X is a DataFrame
-        # Remove the encoded columns from original 
+        # Remove the encoded columns from original
         X_transform = X[list(set(X.columns.values.tolist()).difference(self.cols_to_transform))]
         # Merge on encoded cols
         X_transform = pd.merge(X_transform, self.dummy_encoded_cols, left_index=True, right_index=True)
-        
+
         return X_transform
-    
+
     def df_binary_columns_list(df):
         """ Returns a list of binary columns (unique values are either 0 or 1)"""
-        binary_cols = [col for col in df if 
+        binary_cols = [col for col in df if
                df[col].dropna().value_counts().index.isin([0,1]).all()]
-        return binary_cols    
-    
+        return binary_cols
+
 class DFInteractionsTransformer(BaseEstimator, TransformerMixin):
-    """ Given a nested dictionary of the form {basefeature:[feature1, feature2, feature3]} and 
+    """ Given a nested dictionary of the form {basefeature:[feature1, feature2, feature3]} and
         a method (either 'scale' or 'log-additive'), compute the interactions between the base
         feature and interacting terms. Add on to existing dataframe
     """
@@ -601,7 +593,7 @@ class DFInteractionsTransformer(BaseEstimator, TransformerMixin):
         non_present_interacting_feats = list(set(interacting_feats).difference(present_interacting_feats))
         if self.verbose == 1:
             if non_present_base_feats:
-                print(f'Warning:\nThe following base features are not present in the data: {non_present_base_feats}')        
+                print(f'Warning:\nThe following base features are not present in the data: {non_present_base_feats}')
             if non_present_interacting_feats:
                 print(f'Warning:\nThe following interacting features are not present in the data: {non_present_interacting_feats}')
 
@@ -616,26 +608,26 @@ class DFInteractionsTransformer(BaseEstimator, TransformerMixin):
         if not all(is_number(X[self.present_base_feats+self.present_interacting_feats].dtypes)):
             self.non_numeric_cols = [col for col in self.present_base_feats+self.present_interacting_feats if not \
                                 is_number(X[col].dtype)]
-            raise ValueError(f"""Base Features and Interaction Terms must be numeric. 
-            The following columns are non-numeric: {self.non_numeric_cols}""")                
-                        
+            raise ValueError(f"""Base Features and Interaction Terms must be numeric.
+            The following columns are non-numeric: {self.non_numeric_cols}""")
+
         return self
 
     def transform(self, X, y=None):
         ### Check to see if index is sorted and in order
-        if any(X.reset_index().index.values - X.index.values) != 0: 
+        if any(X.reset_index().index.values - X.index.values) != 0:
             # If it's not in order, reset it but keep the old index
             # to return to later
             X = X.reset_index().rename(columns={'index':'original_index'})
             self._alter_index = True
         # Container for computed interaction terms
-        interaction_terms_df = []        
+        interaction_terms_df = []
         if self.method == 'scale':
             for base_feature, interaction_terms in self.interactions_dict_map.items():
                 ## Check to make sure base feature and interaction terms present in df
                 if base_feature in self.present_base_feats:
                     tmp_interaction_terms = [feat for feat in interaction_terms if feat in self.present_interacting_feats]
-                    # Pull vector to scale by 
+                    # Pull vector to scale by
                     scaling_vector = X[base_feature].values.reshape(X.shape[0], 1)
                     # Reshape and multiply
                     try:
@@ -660,11 +652,11 @@ class DFInteractionsTransformer(BaseEstimator, TransformerMixin):
                     # Else add by the minimum value +1 to get to all positive values
                     else:
                         X_copy[col] +=  X_copy[col].min() + 1
-                        
+
             for base_feature, interaction_terms in self.interactions_dict_map.items():
                 if base_feature in self.present_base_feats:
                     tmp_interaction_terms = [feat for feat in interaction_terms if feat in self.present_interacting_feats]
-                    # Pull vector to log add by                          
+                    # Pull vector to log add by
                     base_vector = np.log(X_copy[base_feature].values)
                     # Take the log of the rest of the data
                     log_interaction_features = np.log(X_copy[tmp_interaction_terms].values)
@@ -676,21 +668,21 @@ class DFInteractionsTransformer(BaseEstimator, TransformerMixin):
                     # Turn into DataFrame
                     interaction_terms_log_added_df = pd.DataFrame(interaction_terms_log_added, columns=col_names)
                     # Add to collection
-                    interaction_terms_df.append(interaction_terms_log_added_df)            
-                
+                    interaction_terms_df.append(interaction_terms_log_added_df)
+
         # Concat together
         interaction_terms_df = pd.concat(interaction_terms_df, axis=1)
-        
-        # Fill NaNs if specified 
-        if self.fillna_val: 
+
+        # Fill NaNs if specified
+        if self.fillna_val:
             interaction_terms_df = interaction_terms_df.fillna(self.fillna_val)
         # (or edge case where fill val is 0 which normally evaluates to False)
         if self.fillna_val == 0:
             interaction_terms_df = interaction_terms_df.fillna(self.fillna_val)
-            
+
         # Add to self attributes
         self.interaction_terms_df = interaction_terms_df
-        
+
         # Merge data back together
         try:
             # Merge on index
@@ -700,7 +692,7 @@ class DFInteractionsTransformer(BaseEstimator, TransformerMixin):
                 X_transformed.index.name = None
             return X_transformed
         except AttributeError:
-            print('Must use .fit() method before transforming')    
+            print('Must use .fit() method before transforming')
 
 ###############################################################################################################
 # Custom Transformers from PyData Seattle 2017 Talk
@@ -789,7 +781,7 @@ class DFStandardScaler(BaseEstimator, TransformerMixin):
         Xss = self.ss.transform(X[self.cols])
         Xscaled = pd.DataFrame(Xss, index=X.index, columns=X[self.cols].columns)
         # Merge back onto the dataframe
-        Xscaled = pd.merge(X[[col for col in X.columns if col not in self.cols]], 
+        Xscaled = pd.merge(X[[col for col in X.columns if col not in self.cols]],
                            Xscaled, left_index=True, right_index=True)
         return Xscaled
 
@@ -818,8 +810,8 @@ class DFRobustScaler(TransformerMixin):
 
 class ColumnExtractor(BaseEstimator, TransformerMixin):
     """ Given a list of columns and optionally a list of columns to include/exclude,
-        filter a dataframe down to the selected columns. 
-    """   
+        filter a dataframe down to the selected columns.
+    """
 
     def __init__(self, cols=None, include=None, exclude=None):
         """
@@ -831,7 +823,7 @@ class ColumnExtractor(BaseEstimator, TransformerMixin):
             A list of string columns to exclude from the dataframe
         include: list
             A list of string columns to include in the dataframe
-        """         
+        """
         self.cols = cols
         self.include = include
         self.exclude = exclude
@@ -845,7 +837,7 @@ class ColumnExtractor(BaseEstimator, TransformerMixin):
             self.cols = [col for col in self.cols if col not in self.exclude]
         # Filter down to subset of desired columns
         if self.include:
-            self.cols = [col for col in self.cols if col in self.include]            
+            self.cols = [col for col in self.cols if col in self.include]
         return self
 
     def transform(self, X):
