@@ -126,7 +126,7 @@ class ColumnNameFormatter(TransformerMixin):
         """Convenience function performing both fit and transform"""
         return self.fit(X).transform(X)
 
-class FeatureLookupTable(TransformerMixin):
+class DFLookupTable(TransformerMixin):
     """ Given a feature column and path to lookup table, left join the the data
     and lookup values
 
@@ -445,7 +445,7 @@ class DFDummyMapTransformer(TransformerMixin):
             X_transform = pd.merge(X_transform, self.one_hot_encoded_cols, left_index=True, right_index=True)
             return X_transform
         except AttributeError:
-            print('Must use .fit() method before transforming') 
+            print('Must use .fit() method before transforming')
 
 class DFNullMapFill(BaseEstimator, TransformerMixin):
     """ Given a dataframe and a dictionary mapping {column:null_fill_value}, replace the
