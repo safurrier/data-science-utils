@@ -162,6 +162,12 @@ class DFLookupTable(TransformerMixin):
                 add_prefix=None, add_suffix=None):
         self.feature = feature
         self.table_lookup_keep_cols = table_lookup_keep_cols
+        # Remove key columns from keep columns if present
+        # Avoids duplicate columns later on when joining
+        for feat in self.feature:
+            if feat in self.table_lookup_keep_cols:
+                self.table_lookup_keep_cols = [name for name in self.table_lookup_keep_cols
+                                          if name != feat]
         self.table_path = table_path
         self.table_format = table_format
         self.merge_as_string = merge_as_string
@@ -265,7 +271,6 @@ class DFLookupTable(TransformerMixin):
                 self.lookup_table = pd.read_csv(self.table_path)
             elif self.table_format == 'pickle':
                 self.lookup_table =  pd.read_pickle(self.table_path)
-
         return self.fit(X, y=y).fitted_data
 
 
