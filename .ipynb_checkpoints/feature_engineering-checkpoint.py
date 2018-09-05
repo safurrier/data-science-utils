@@ -244,13 +244,17 @@ def get_specific_dummies(df, col_map=None, prefix=None, suffix=None, return_df=T
     else:
         return one_hot_cols
     
-def one_hot_column_text_match(df, column, text_phrases, new_col_name=None, return_df=False, case=False):
+def one_hot_column_text_match(df, column=None, text_phrases=None, new_col_name=None, return_df=False, case=False):
     """Given a dataframe, text column to search and a list of text phrases, return a binary
        column with 1s when text is present and 0 otherwise
     """
     # Ignore regex group match warning
     import warnings
     warnings.filterwarnings("ignore", 'This pattern has match groups')
+    
+    # Check params
+    assert column in df.columns.values.tolist(), print(f"Column {column} not found in df columns")
+    assert text_phrases, print(f"Must specify 'text_phrases' as a list of strings")
 
     # Create regex pattern to match any phrase in list
 
