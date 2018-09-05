@@ -374,7 +374,7 @@ def even_sample_weights(df, target_col, weight_col,
     else:
         return pd.Series(combined_weights, name=new_col_name) 
     
-def group_one_hot(df, cols_to_group, new_col_name=None, return_df=False):
+def df_group_one_hot(df, cols_to_group, how ='any', new_col_name=None, return_df=False):
     """Given a list of columns, find the intersection of their one hot values
     and return as a Series
     
@@ -383,7 +383,11 @@ def group_one_hot(df, cols_to_group, new_col_name=None, return_df=False):
     df : Pandas DataFrame
         A dataframe from which to pull the one hot columns
     cols_to_group : list[str]
-        A list of column names for which to group. 
+        A list of column names for which to group.
+    how: str
+        Denotes whether to return columns intersection ('all') or union ('any')
+        Default is any
+        Must be either 'any' or 'all'
     new_col_name: str
         A string name for the returned column. Optional         
     return_df : bool
@@ -398,7 +402,7 @@ def group_one_hot(df, cols_to_group, new_col_name=None, return_df=False):
         
     
     Examples
-    group_one_hot(df, ['flag1', 'flag2', 'flag3'])
+    df_group_one_hot(df, ['flag1', 'flag2', 'flag3'])
     
     0         0
     1         0
@@ -412,18 +416,35 @@ def group_one_hot(df, cols_to_group, new_col_name=None, return_df=False):
     all had 1 
     
     """
-    if not new_col_name:
-        new_col_name = '_and_'.join(cols_to_group)
-    grouped_one_hot_col = pd.Series((df[cols_to_group] == 1) # Create boolean mask where columns are 1
-                                    .all(axis=1) # Return True where entire row is all True
-                                    .astype(int),  # Cast to int
-                                    name = new_col_name 
-                                   )
+    assert how in ['any', 'all'], print(f'argument "how" must be either "any" or "all" and not "{how}"')
+    
+    # Group one hot columns
+    # Create boolean mask where columns are 1
+    mask = df[cols_to_group] == 1
+    if how == 'all':
+        # Create column name if necessary
+        if not new_col_name:
+            new_col_name = '_AND_'.join(cols_to_group)
+        grouped_one_hot_col = pd.Series(mask 
+                                        .all(axis=1) # Return True where entire row is all True
+                                        .astype(int),  # Cast to int
+                                        name = new_col_name 
+                                       )
+    elif how =='any':
+        # Create column name if necessary
+        if not new_col_name:
+            new_col_name = '_OR_'.join(cols_to_group)        
+        grouped_one_hot_col = pd.Series(mask # Create boolean mask where columns are 1
+                                        .any(axis=1) # Return True where any element of row is True
+                                        .astype(int),  # Cast to int
+                                        name = new_col_name 
+                                       )
+        
     if return_df:
         df_copy = df.copy()
         df_copy[new_col_name] = grouped_one_hot_col
         return df_copy
     else:
-        return grouped_one_hot_col    
+        return grouped_one_hot_col 
     
    
