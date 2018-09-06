@@ -600,20 +600,25 @@ def column_is_not_value(df, column=None, value=None, new_col_name=None, return_d
     else:
         return df[new_col_name]
 
-def tidy_correlation(df, columns=None, keep_identity_correlations=False):
-    """Given a dataframe and optionally subset of columns, compute correlations
+def tidy_correlation(df, columns=None, keep_identity_correlations=False, abs_val_correlations=False):
+    """Given a dataframe and optionally subset of columns, compute correlations 
     between all features. Enable keep_identity_correlations for including the correlation
-    between a feature and itself"""
+    between a feature and itself. Enable abs_val_correlations to add a column for absolute value of 
+    correlation value.
+    """
     df_copy = df.copy()
     if columns:
         df_copy = df_copy[columns]
-
+    
     df_copy = (df_copy.corr()
                .reset_index()
                .melt(id_vars='index', var_name="Paired_Feature", value_name="Correlation")
                .rename(columns={'index':'Base_Feature'})
                .sort_values(by='Correlation', ascending=False)
               )
+    if abs_val_correlations:
+        df_copy['Correlation_Absolute_Value'] = df_copy['Correlation'].abs()
+        df_copy = df_copy.sort_values(by='Correlation_Absolute_Value', ascending=False)
     if keep_identity_correlations:
         return df_copy
     else:
