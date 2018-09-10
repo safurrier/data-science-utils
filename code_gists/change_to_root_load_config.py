@@ -1,6 +1,8 @@
 import ruamel.yaml as yaml
 import os
 import sys
+
+
 NO_CONFIG_ERR_MSG = """No config file found. Root directory is determined by presence of "config.yaml" file."""
 
 original_wd = os.getcwd()
