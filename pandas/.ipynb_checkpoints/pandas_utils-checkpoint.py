@@ -1,36 +1,6 @@
 import numpy as np
 import pandas as pd
 
-def column_to_datetime(df, column=None):
-    import pandas as pd
-    """ Return a the datetime dtyped column"""
-#     if (not column) | (not value) | (not new_col_name):
-#         raise ValueError
-    df_copy = df.copy()
-    df_copy[column] = df_copy[column].apply(pd.to_datetime)
-    return df_copy
-
-def basic_preprocessing_text(df, columns=None, case='lower', strip=True, return_df=True):
-    """ Apply basic text processing to a list of columns"""
-    if not columns:
-        raise ValueError
-    # Defensive copy
-    df_copy = df.copy()
-
-    # For each column, process according to parameters
-    for col in columns:
-        if case == 'lower':
-            df_copy[col] = df_copy[col].str.lower()
-        if case == 'upper':
-            df_copy[col] = df_copy[col].str.upper()
-        if strip:
-            df_copy[col] = df_copy[col].str.strip()
-
-    if return_df:
-        return df_copy
-    else:
-        return df_copy[columns]
-
 def replace_column_values(df, col=None, values=None, replacement=None, new_col_name=None):
     """ Replace values in a given column with specified value. Function form of DataFrame.replace()
     Parameters
