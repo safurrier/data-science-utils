@@ -1,43 +1,7 @@
 import numpy as np
 import pandas as pd
 
-def replace_column_values(df, col=None, values=None, replacement=None, new_col_name=None):
-    """ Replace values in a given column with specified value. Function form of DataFrame.replace()
-    Parameters
-    ----------
-    df : Pandas DataFrame
-        A dataframe containing the data to transform
-    col: str
-        The name of the column to replace certain values in
-    values: list
-        A list of the values to replace
-    replacement: object
-        Replaces the matches of values
-    new_col_name: str
-        The name of the new column which will have the original with replaced values
-        If None, the original column will be replaced inplace.
 
-    Returns
-    ----------
-    df_copy: Pandas DataFrame
-        The original dataframe with the column's value replaced
-    """
-    # Copy so original is not modified
-    df_copy = df.copy()
-    if not values:
-        return print('Please specify values to replace')
-
-    if not replacement:
-        return print('Please specify replacement value')
-
-
-    # If  column name specified, create new column
-    if new_col_name:
-        df_copy[new_col_name] = df_copy[col].replace(values, replacement)
-    # Else replace old column
-    else:
-        df_copy[col] = df_copy[col].replace(values, replacement)
-    return df_copy
 
 def quantile_binned_feature(df, col=None, quantiles=10, new_col_name=None,
                             attempt_smaller_quantiles_if_necessary=True,
@@ -260,89 +224,6 @@ def column_above_or_below_threshold(df, column=None, above_or_below='above',
 def identity_df(df):
     """ Return the dataframe. For use with decorators"""
     return df
-
-def find_null_columns(df):
-    """
-    Return a list of columns with null values
-
-    Args:
-    df - dataframe - Dataframe to check columns of
-
-    Returns:
-    list of null columns
-    """
-    return df.columns[df.isnull().any()].tolist()
-
-
-def null_column_report(df, total=True, percent=True, ):
-    """
-    Print each null column column in a dataframe that is null as well as percent null
-
-    Args:
-    df - pandas dataframe
-    total - boolean - Flag to indicate whether to print total null records per column
-    percent - boolean - Flag to indicate whether to print percent of column that is null
-
-    Returns:
-    None
-    """
-    num_null_columns = df.shape[1] - df.dropna(axis=1).shape[1]
-    print('Number of columns with null values:\n{}\n'.format(num_null_columns))
-    null_columns = find_null_columns(df)
-    for col in null_columns:
-        total_null_records = df[col].isnull().sum()
-        print('Column:')
-        print(col)
-        if total:
-            print('Total Nulls:')
-            print(total_null_records)
-        if percent:
-            print('Percent Null:')
-            print(round(total_null_records/df.shape[0], 2))
-            print()
-
-def null_column_report_df(df):
-    """
-    Searches a dataframe for null columns and returns a dataframe of the format
-    Column | Total Nulls | Percent Nulls
-    """
-    num_null_columns = df.shape[1] - df.dropna(axis=1).shape[1]
-    print('Number of columns with null values:\n{}\n'.format(num_null_columns))
-    null_columns = df.columns[df.isnull().any()].tolist()
-    null_info_records = []
-    for col in null_columns:
-        total_null_records = df[col].isnull().sum()
-        percent_null_records = round(total_null_records/df.shape[0], 2)
-        null_info_records.append({
-            'Column':col,
-            'Total_Null_Records':total_null_records,
-            'Percent_Null_Records':percent_null_records
-        })
-    return pd.DataFrame(null_info_records)
-
-def duplicate_column_name_report(df):
-    """ Returns a list of columns with duplicate column names
-        and its associated count
-    """
-    from collections import Counter
-    col_counts = Counter(df.columns).most_common()
-    dupe_columns = [tup for tup in col_counts if tup[1] >1]
-    if not dupe_columns:
-        return 'No duplicated column names'
-    else:
-        return dupe_columns
-
-def unique_columns(df):
-    """ Returns the dateaframe with duplicated column names
-        removed. Note: Doesn't check column values, only names
-    """
-    df_copy = df.copy()
-    # Find Unique Indices
-    _, i = np.unique(df.columns, return_index=True)
-    unique_df = df_copy.iloc[:, i]
-    return unique_df
-
-
 
 def column_comparison(series, col1, col2, comparison='equal', pos_return_val=1, neg_return_val=0):
     """
