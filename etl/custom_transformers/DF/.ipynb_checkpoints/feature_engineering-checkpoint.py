@@ -2,6 +2,10 @@ import pandas as pd
 import numpy as np
 from sklearn.preprocessing import FunctionTransformer
 from sklearn.base import TransformerMixin, BaseEstimator
+from ....ml.feature_engineering.target_mean_aggregate import df_feature_vals_target_association_dict
+from ....ml.feature_engineering.one_hot import get_specific_dummies
+from ....ml.feature_engineering.one_hot import get_text_specific_dummies
+
 
 class DFLookupTable(TransformerMixin):
     """ Given a feature column and path to lookup table, left join the the data

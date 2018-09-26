@@ -47,3 +47,12 @@ def replace_column_values(df, col=None, values=None, replacement=None, new_col_n
         return df_copy
     else:
         return df_copy[col]
+    
+def replace_df_values(df, values):
+    """ Call pd.DataFrame.replace() on a dataframe and return resulting dataframe.
+    Values should be in format of nested dictionaries,
+    E.g., {‘a’: {‘b’: nan}}, are read as follows:
+        Look in column ‘a’ for the value ‘b’ and replace it with nan
+    """
+    df_copy = df.copy()
+    return df_copy.replace(values)    

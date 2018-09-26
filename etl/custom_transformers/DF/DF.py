@@ -5,6 +5,14 @@ from sklearn.feature_extraction import DictVectorizer
 from sklearn.preprocessing import FunctionTransformer, StandardScaler, RobustScaler
 from sklearn.preprocessing import Imputer, MultiLabelBinarizer
 
+###############################################################################################################
+# Custom Transformers from PyData Seattle 2017 Talk
+###############################################################################################################
+
+# Reference
+# http://zacstewart.com/2014/08/05/pipelines-of-featureunions-of-pipelines.html
+# https://github.com/jem1031/pandas-pipelines-custom-transformers
+
 class DFFunctionTransformer(TransformerMixin):
     # FunctionTransformer but for pandas DataFrames
 
