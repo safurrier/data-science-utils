@@ -1,8 +1,5 @@
-import numpy as np
 import pandas as pd
-from sklearn.ensemble import RandomForestClassifier
-
-
+import numpy as np
 
 def feature_list_log(selected_features_df, method=None, notes = None, split_char='---',
                      export=False, export_fpath=None, previous_features_df_fpath=None):
@@ -141,7 +138,7 @@ def feature_list_latest(feature_selection_df, method=None, max_features=None,
     else:
         return print('No feature list with specified filters found')  
     
-def extract_interaction_terms(flist, unique=True):
+def interaction_terms(flist, unique=True):
     """ Compute a list of the interaction terms seperated by '_*_' if 
         scaled or '_+_' if log-additive
         Optionally specify unique=False interaction terms 
@@ -163,58 +160,9 @@ def extract_interaction_terms(flist, unique=True):
     if unique:
         dupes = interaction_df.T.apply(sorted).T.duplicated()
         interaction_df = interaction_df[~dupes]
-    return interaction_df    
+    return interaction_df   
 
-def export_boruta_list(selected_features_df, model = RandomForestClassifier,
-                       boruta_fpath='references/boruta_selected_features_log.csv'):
-    import datetime
-    # Create record of features
-    selected_features = {
-    'date':datetime.datetime.today(),
-    'classifer':model.__class__,
-    'number_of_features_selected':selected_features_df.shape[1],
-    'features':"|".join(selected_features_df.columns.values.tolist())
-        }
-    # Load in previous log of features
-    previous_feature_selections_df = pd.read_csv(boruta_fpath)
-    # Create record
-    export_df = pd.DataFrame(selected_features_df, index=[0])
-    # Add to old records
-    export_df = pd.concat([previous_feature_selections_df, export_df])
-    # Export
-    export_df.to_csv(boruta_fpath, index=False)
-
-
-def boruta_features_latest_list(boruta_df):
-    return boruta_df.iloc[boruta_df.shape[0]-1, :].features.split('|')
-
-
-def boruta_features_df(boruta_df, unique=True):
-    """ Compute a list of the interaction features in a boruta 
-        feature log
-    """
-    # Pull newest features
-    latest_boruta = boruta_df.iloc[boruta_df.shape[0]-1, :].features.split('|')
-    
-    # Seperate into base feature, interaction feature, method
-    multiplicative_features = []
-    additive_features = []
-    for feat in latest_boruta:
-        if len(feat.split('_*_')) >1:
-            interaction_term = feat.split('_*_')
-            multiplicative_features.append((interaction_term[0], interaction_term[1], 'multiplicative'))
-        if len(feat.split('_+_')) >1:
-            interaction_term = feat.split('_+_')
-            additive_features.append((interaction_term[0][4:-1], interaction_term[1][4:-1], 'log-additive'))        
-    interaction_terms = multiplicative_features + additive_features
-    ### Remove duplicates of Base|Interacting that are == Interacting|Base
-    boruta_df = pd.DataFrame(interaction_terms, columns=['Base_Feature', 'Interaction_Term', 'Method'])
-    if unique:
-        dupes = boruta_df.T.apply(sorted).T.duplicated()
-        boruta_df = boruta_df[~dupes]
-    return boruta_df
-
-def extract_interaction_features_to_dict(df):
+def interaction_features_to_dict(df):
     """ From a df of the form base feature | Interaction Term return a nested 
         dictionary of the form {basefeature:[feature1, feature2, feature3]}
     """
@@ -224,4 +172,3 @@ def extract_interaction_features_to_dict(df):
         interactions_dict[base_feature] = int_terms
     return interactions_dict
     
-   
