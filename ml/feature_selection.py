@@ -10,6 +10,7 @@ def feature_list_log(selected_features_df, method=None, notes = None, split_char
         Optionally specify feature selection method or notes
         Can specify a filepath of previous feature list logs to add to
         Exports file to specified path, or defaults to 'datetime-featurelist.csv'
+        
     Parameters
     ----------
     selected_features_df : Pandas DataFrame
