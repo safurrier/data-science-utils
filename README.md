@@ -7,32 +7,58 @@ ETL, EDA, NLP, viz, feature engineering, feature selection, etc.
 
 Project Organization
 ------------
-
-    ├── custom_transformers.py             <- Various custom transformers in the form of sklearn TransformerMixins
-    │                                         For building reproducible ETL pipelines
+    ├── LICENSE
+    ├── Makefile           <- Makefile with commands like `make data` or `make train`
+    ├── README.md          <- The top-level README for developers using this project.
+    ├── data
+    │   ├── external       <- Data from third party sources.
+    │   ├── interim        <- Intermediate data that has been transformed.
+    │   ├── processed      <- The final, canonical data sets for modeling.
+    │   └── raw            <- The original, immutable data dump.
     │
-    ├── data_checks.py                     <- Code to validate various data checks
+    ├── docs               <- A default Sphinx project; see sphinx-doc.org for details
     │
-    ├── pandas_utils.py                    <- Code for a variety of tasks dealing with Pandas DataFrames
-    │                                         Includes null value profiling, duplicate column checks, associative 
-    │                                         relationship functions (mutual information, correlations, grouped means)
-    │                                         quick NaN replacement, quantile binning of columns, categoric or continuous
-    │                                         column search, etc. 
-    │                                                                   
-    ├── text_utils.py                      <- Code for dealing with text. Includes distributed loading of text corpus, 
-    |                                         entity statement extraction, sentiment analysis, etc.	
+    ├── models             <- Trained and serialized models, model predictions, or model summaries
     │
-    ├── feature_engineering                <- Code to facilitate feature engineering, most often by measuring relationship between 
-    |                                         data and a target or by manipulating existing data. Includes code for feature value
-    |                                         target mean, grouped searching by target mean, feature matching for specific values,
-    |                                         one hot encoding groups of feature values above a certain minimum target mean etc.
-    |                                         Build interaction terms based on a dictionary of the form:
-    |                                         {base_feature:[interacting_terms]} in conjunction with transformer DFInteractionTerms
-    │                                        
+    ├── notebooks          <- Jupyter notebooks. Naming convention is a number (for ordering),
+    │                         the creator's initials, and a short `-` delimited description, e.g.
+    │                         `01.0-jqp-initial-data-exploration`.
     │
-    ├── feature_selection                  <- Code to log feature lists, as well extract logged feature lists, 
-    │                                         interaction terms from a given featurelist and rank features given 
-    │					      multiple feature lists with features in order of importance. 
+    ├── references         <- Data dictionaries, manuals, and all other explanatory materials.
     │
-    ├── code_gists                         <- Code gists with commonly used code (change to root directory, connect to database, 
-    │                                         profile data, etc)
+    ├── reports            <- Generated analysis as HTML, PDF, LaTeX, etc.
+    │   └── figures        <- Generated graphics and figures to be used in reporting
+    │
+    ├── requirements.txt   <- The requirements file for reproducing the analysis environment, e.g.
+    │                         generated with `pip freeze > requirements.txt`
+    |
+    ├── setup.sh           <- Script to initiailize git repo, setup a conda virtual environment  
+    │                         and install dependencies.
+    │
+    ├── src                <- Source code for use in this project.
+    │   ├── __init__.py    <- Makes src a Python module
+    │   │
+    │   ├── data           <- Scripts to download or generate data
+    │   │   └── make_dataset.py
+    │   │
+    │   ├── features       <- Scripts to turn raw data into features for modeling
+    │   │   └── build_features.py
+    │   │
+    │   ├── models         <- Scripts to train models and then use trained models to make
+    │   │   │                 predictions
+    │   │   ├── predict_model.py
+    │   │   └── train_model.py
+    │   │
+    │   ├── visualization  <- Scripts to create exploratory and results oriented visualizations
+    │   │     └── visualize.py
+    │   │ 
+    │   └── utils          <- Utility code for various purposes and packages
+    │       │                 
+    │       ├── text_utils.py
+    │       ├── pandas_utils.py
+    │       ├── eda.py
+    │       ├── profile-data.py
+    │       ├── change-to-root-load-config.py
+    │       └── connect_to_db.py
+    │       
+    └── tox.ini            <- tox file with settings for running tox; see tox.testrun.org
