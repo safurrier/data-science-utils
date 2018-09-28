@@ -314,7 +314,7 @@ class DFDummyMapTransformer(TransformerMixin):
     def transform(self, X):
         try:
             # Extract dummy columns
-            self.one_hot_encoded_cols = pd.get_dummies(X[self.present_base_feats])
+            self.one_hot_encoded_cols = pd.get_dummies(X[self.present_base_feats], dummy_na=True)
             # Only keep those specified in the map
             # Might throw key error here
             self.one_hot_encoded_cols = self.one_hot_encoded_cols[self._one_hot_cols_to_keep]
@@ -322,6 +322,7 @@ class DFDummyMapTransformer(TransformerMixin):
             if self.remove_original:
                 # Remove the encoded columns from original
                 keep_cols = list(set(X.columns.values.tolist()).difference(self.present_base_feats))
+                # Put in original ordering                
                 ordered_keep_cols = [column for column in X.columns.values.tolist() if column in keep_cols]
                 X_transform = X[ordered_keep_cols]
             else:
