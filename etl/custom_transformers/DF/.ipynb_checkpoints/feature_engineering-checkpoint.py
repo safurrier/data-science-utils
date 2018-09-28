@@ -4,7 +4,7 @@ from sklearn.preprocessing import FunctionTransformer
 from sklearn.base import TransformerMixin, BaseEstimator
 from ....ml.feature_engineering.target_mean_aggregate import df_feature_vals_target_association_dict
 from ....ml.feature_engineering.one_hot import get_specific_dummies
-from ....ml.feature_engineering.one_hot import get_text_specific_dummies
+from ....ml.feature_engineering.one_hot import text_match_one_hot_from_map
 
 
 class DFLookupTable(TransformerMixin):

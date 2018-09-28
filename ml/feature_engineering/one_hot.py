@@ -28,7 +28,7 @@ def get_specific_dummies(df, col_map=None, prefix=None, suffix=None, return_df=T
     else:
         return one_hot_cols
     
-def one_hot_column_text_match(df, column=None, text_phrases=None, new_col_name=None, return_df=False, case=False):
+def text_match_one_hot(df, column=None, text_phrases=None, new_col_name=None, return_df=False, case=False):
     """Given a dataframe, text column to search and a list of text phrases, return a binary
        column with 1s when text is present and 0 otherwise
     """
@@ -76,7 +76,7 @@ def one_hot_column_text_match(df, column=None, text_phrases=None, new_col_name=N
     else:
         return matches
     
-def get_text_specific_dummies(df, col_map=None, case=False, prefix=None, suffix=None, return_df=True):
+def text_match_one_hot_from_map(df, col_map=None, case=False, prefix=None, suffix=None, return_df=True):
     """ Given a mapping of column_name: list of values, search for text matches
     for the phrases in the list. Optional arguments to add prefixes 
     and/or suffixes to created column names.
