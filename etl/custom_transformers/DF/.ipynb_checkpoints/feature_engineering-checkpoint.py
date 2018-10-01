@@ -22,6 +22,11 @@ class DFLookupTable(TransformerMixin):
     table_lookup_keep_cols: list
         A list of the columns which should be kept from the joined tables. Default is
         to keep all columns from table
+    table_lookup_exclude_cols: list
+        A list of the columns which should removed from the joined tables. 
+        E.g. if joined table should include all columns from the lookup eable
+        except column 'col45', pass no kwarg to table_lookup_keep_cols and
+        ['col45'] to table_lookup_exclude_cols
     table_path : str
         The path to the table to use as a lookup
     table_format : str
@@ -38,34 +43,61 @@ class DFLookupTable(TransformerMixin):
     import pandas as pd
 
     def __init__(self, feature=None, lookup_key=None,
-                 table_lookup_keep_cols=None, table_path=None,
+                 table_lookup_keep_cols=None, 
+                 table_lookup_exclude_cols=None,
+                 table_path=None,
                  table_format='csv', merge_as_string=False,
                 add_prefix=None, add_suffix=None):
+        # If argument is a single string, put it in a 
+        # list with one value
+        if isinstance(feature, str):
+            feature = [feature]
         self.feature = feature
+        self.table_path = table_path
+        self.table_format = table_format
+        self.merge_as_string = merge_as_string
+        self.add_prefix = add_prefix
+        self.add_suffix = add_suffix        
+        # Determine which column to left join the lookup table on
+        if not lookup_key:
+            # If none specified use 'feature'
+            self.lookup_key = self.feature
+        else:
+            # If argument is a single string, put it in a 
+            # list with one value
+            if isinstance(lookup_key, str):
+                lookup_key = [lookup_key]
+            self.lookup_key = lookup_key
+            
+        # Load Lookup Table
+        if self.table_format == 'csv':
+            self.lookup_table = pd.read_csv(self.table_path)
+        elif self.table_format == 'pickle':
+            self.lookup_table =  pd.read_pickle(self.table_path) 
+            
+        # If no keep columns specified, keep all columns from lookup table
+        if table_lookup_keep_cols:
+            # If argument is a single string, put it in a 
+            # list with one value
+            if isinstance(table_lookup_keep_cols, str):
+                table_lookup_keep_cols = [table_lookup_keep_cols]
+        if not table_lookup_keep_cols:
+            table_lookup_keep_cols = self.lookup_table.columns.values.tolist()
+        # If specified remove specific columns
+        if table_lookup_exclude_cols:
+            # If argument is a single string, put it in a 
+            # list with one value
+            if isinstance(table_lookup_exclude_cols, str):
+                table_lookup_exclude_cols = [table_lookup_exclude_cols]
+            table_lookup_keep_cols = [col for col in table_lookup_keep_cols if col not in table_lookup_exclude_cols]
         self.table_lookup_keep_cols = table_lookup_keep_cols
+            
         # Remove key columns from keep columns if present
         # Avoids duplicate columns later on when joining
         for feat in self.feature:
             if feat in self.table_lookup_keep_cols:
                 self.table_lookup_keep_cols = [name for name in self.table_lookup_keep_cols
                                           if name != feat]
-        self.table_path = table_path
-        self.table_format = table_format
-        self.merge_as_string = merge_as_string
-        self.add_prefix = add_prefix
-        self.add_suffix = add_suffix
-
-        # Determine which column to left join the lookup table on
-        if not lookup_key:
-            # If none specified use 'feature'
-            self.lookup_key = self.feature
-        else:
-            self.lookup_key = lookup_key
-
-        if self.table_format == 'csv':
-            self.lookup_table = pd.read_csv(self.table_path)
-        elif self.table_format == 'pickle':
-            self.lookup_table =  pd.read_pickle(self.table_path)
 
 
     def fit(self, X, y=None):
