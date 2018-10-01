@@ -270,7 +270,7 @@ class DFDummyMapTransformer(TransformerMixin):
     1 indicates presence of feature value and 0 its absence
     """
 
-    def __init__(self, dummy_map=None, remove_original=True, verbose=1):
+    def __init__(self, dummy_map=None, remove_original=True, join_char='_', verbose=1):
         """
         Parameters
         ----------
@@ -279,6 +279,9 @@ class DFDummyMapTransformer(TransformerMixin):
         remove_original: bool
             Boolean flag to remove the columns that will be one hot encoded.
             Default is True. False will one hot encode but keep the original columns as well
+        join_char: str, default '_'
+            The string pattern to join the column name and feature value on to describe the 
+            dummy encoded column. E.g. column Fruit with feature value Apple would be 'Fruit_Apple'
         verbose: int
             Verbosity of output. Default is 1, which prints out base features and interacting
             terms in interactions_dict_map that are not present in the data. Set to None to
@@ -287,6 +290,7 @@ class DFDummyMapTransformer(TransformerMixin):
         self.dummy_map = dummy_map
         self.verbose = verbose
         self.remove_original = remove_original
+        self.join_char = join_char
 
     def fit(self, X, y=None):
         ## Check which base features are present in the data
@@ -300,29 +304,61 @@ class DFDummyMapTransformer(TransformerMixin):
         ## Set attributes
         self.present_base_feats = present_base_feats
         self.non_present_base_feats = non_present_base_feats
-
-        # Extract one hot columns to keep
-        # By joining each key column with each feature value on "_"
-        _one_hot_cols_to_keep = []
-        for key, values in self.dummy_map.items():
-            for value in values:
-                _one_hot_cols_to_keep.append("_".join([key, value]))
-        self._one_hot_cols_to_keep = _one_hot_cols_to_keep
+        
+        # Set private attributes for float and int columns 
+        # To later check for potential matching errors
+        self._float_cols = X.select_dtypes(include=[np.float]).columns.values.tolist()
+        self._int_cols = X.select_dtypes(include=['int']).columns.values.tolist()
 
         return self
 
     def transform(self, X):
         try:
-            # Extract dummy columns
-            self.one_hot_encoded_cols = pd.get_dummies(X[self.present_base_feats], dummy_na=True)
-            # Only keep those specified in the map
-            # Might throw key error here
-            self.one_hot_encoded_cols = self.one_hot_encoded_cols[self._one_hot_cols_to_keep]
+            self.one_hot_encoded_cols = [] 
+            # Iterate through the dict's keys (df columns) and values (column feature values to match)
+            for base_feature, feature_values in self.dummy_map.items():
+                # Flag for printing one hot encoded values
+                print_value_counts = False
+                if base_feature in self.present_base_feats:
+                   # Iterate through feature values, and turn it into a set 
+                    # So there are no duplicates
+                    for feature_value in set(feature_values):
+                        # Check for data type mismatch
+                        if self.verbose == 1:
+                            if (isinstance(feature_value, int)) & (base_feature in self._float_cols):
+                                print(f"""Warning: Feature Value "{feature_value}" is an integer in float column "{base_feature}". 
+Consider checking if it matched correctly""")
+                                print_value_counts = True
+                            if (isinstance(feature_value, float)) & (base_feature in self._int_cols):
+                                print(f"""Warning: Feature Value "{feature_value}" is a float in integer column "{base_feature}". 
+Consider checking if it matched correctly""")     
+                                print_value_counts = True
+                        
+                        # Cast to string if not already a string
+                        if not isinstance(feature_value, str):
+                            feature_value = str(feature_value)
+                        # Create name based on self.join_charjoin_char
+                        one_hot_feature_name = self.join_char.join([base_feature, feature_value])
+                        # Match using np.where
+                        one_hot_col = pd.Series(np.where(X[base_feature].astype(str) == feature_value, 1, 0),
+                                               name=one_hot_feature_name)
+                        # Warning
+                        if self.verbose == 1:
+                            # If no positive matches
+                            if one_hot_col.sum() == 0:
+                                print(f'Warning: Dummy Column {one_hot_feature_name} returning all 0s') 
+                            # If data type mismatch, print value counts of one hot encoded col
+                            if print_value_counts:
+                                print('This is the one_hot_encoded column value counts:')
+                                print(one_hot_col.value_counts())    
+                        self.one_hot_encoded_cols.append(one_hot_col)
+            # Concat all one hot encoded columns together            
+            self.one_hot_encoded_cols = pd.concat(self.one_hot_encoded_cols, axis=1)
 
             if self.remove_original:
                 # Remove the encoded columns from original
                 keep_cols = list(set(X.columns.values.tolist()).difference(self.present_base_feats))
-                # Put in original ordering                
+                # Put in original ordering
                 ordered_keep_cols = [column for column in X.columns.values.tolist() if column in keep_cols]
                 X_transform = X[ordered_keep_cols]
             else:
