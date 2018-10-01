@@ -2,8 +2,6 @@ import pandas as pd
 import numpy as np
 from sklearn.preprocessing import FunctionTransformer
 from sklearn.base import TransformerMixin, BaseEstimator
-from functools import reduce
-
 
 class NumericStringCharacterRemover(TransformerMixin):
     """Take a string column and remove common formatting characters
@@ -116,3 +114,81 @@ class ColumnNameFormatter(TransformerMixin):
     def fit_transform(self, X, y=None):
         """Convenience function performing both fit and transform"""
         return self.fit(X).transform(X)
+    
+class DFNullMapFill(BaseEstimator, TransformerMixin):
+    """ Given a dataframe and a dictionary mapping {column:null_fill_value}, replace the
+        column values where null with specified value
+
+        Example:
+        df = pd.DataFrame([[np.nan, 2, np.nan, 0],
+                           [3, 4, np.nan, 1],
+                           [np.nan, np.nan, np.nan, 5],
+                           [np.nan, 3, np.nan, 4]],
+                           columns=list('ABCD'))
+         df
+             A    B   C  D
+        0  NaN  2.0 NaN  0
+        1  3.0  4.0 NaN  1
+        2  NaN  NaN NaN  5
+        3  NaN  3.0 NaN  4
+
+        filler = DataFrameNullFill(null_column_fill_map={'A': 0, 'B': 1, 'C': 2, 'D': 3})
+
+        filler.fit(df)
+
+        df = filler.transform(df)
+
+            A   B   C   D
+        0   0.0 2.0 2.0 0
+        1   3.0 4.0 2.0 1
+        2   0.0 1.0 2.0 5
+        3   0.0 3.0 2.0 4
+    """
+
+    def __init__(self, null_column_fill_map=None):
+        """
+        Parameters
+        ----------
+        null_column_fill_map: dict
+            A dictionary mapping {column name: nan fill value}
+            E.g. {'A': 0, 'B': 1, 'C': 2, 'D': 3})
+
+        """
+        if not null_column_fill_map:
+            print('Specify a null_column_fill_map')
+        assert isinstance(null_column_fill_map, dict)
+        self.null_column_fill_map = null_column_fill_map
+
+    def fit(self, X, y=None):
+        original_set_with_copy_setting = pd.options.mode.chained_assignment
+        # Disable SettingWithCopy Warning
+        pd.options.mode.chained_assignment = None
+        assert isinstance(X, pd.DataFrame)
+        # First, if there are any Categorical Dtypes, add the fill value
+        # to the categories
+        X_categorical = X.select_dtypes(include='category')
+        # Get list of categorical columns
+        categorical_cols = X_categorical.columns.values.tolist()
+
+        # Find out which categorical columns have a null fill specified
+        categorical_fill_map = {key:value for key, value in self.null_column_fill_map.items()
+                                if key in categorical_cols}
+
+        # For each of those, add the fill value as a category
+        for column in list(categorical_fill_map.keys()):
+            # If fill value is not in categories, add it
+            if categorical_fill_map[column] not in X_categorical[column].cat.categories.values.tolist():
+                X_categorical[column] = X_categorical[column].cat.add_categories([categorical_fill_map[column]])
+
+        # Replace the updated columns
+        X[categorical_cols] = X_categorical[categorical_cols]
+        # Set state and return to original SettingWithCopy Warning setting
+        pd.options.mode.chained_assignment = original_set_with_copy_setting
+        self.is_fit=True
+        return self
+
+    def transform(self, X, y=None):
+        X_copy = X
+        X_transformed = X_copy.fillna(value=self.null_column_fill_map)
+        return X_transformed
+

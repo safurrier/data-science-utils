@@ -5,6 +5,14 @@ from sklearn.feature_extraction import DictVectorizer
 from sklearn.preprocessing import FunctionTransformer, StandardScaler, RobustScaler
 from sklearn.preprocessing import Imputer, MultiLabelBinarizer
 
+###############################################################################################################
+# Custom Transformers from PyData Seattle 2017 Talk
+###############################################################################################################
+
+# Reference
+# http://zacstewart.com/2014/08/05/pipelines-of-featureunions-of-pipelines.html
+# https://github.com/jem1031/pandas-pipelines-custom-transformers
+
 class DFFunctionTransformer(TransformerMixin):
     # FunctionTransformer but for pandas DataFrames
 
@@ -147,6 +155,40 @@ class ColumnExtractor(BaseEstimator, TransformerMixin):
         # assumes X is a DataFrame
         Xcols = X[self.cols]
         return Xcols
+
+class DFDummyTransformer(TransformerMixin):
+    # Transforms dummy variables from a list of columns
+
+    def __init__(self, columns=None):
+        self.columns = columns
+
+    def fit(self, X, y=None):
+        # Assumes no columns provided, in which case all columns will be transformed
+        if not self.columns:
+            self.already_binary_cols = df_binary_columns_list(X)
+            self.cols_to_transform = list(set(X.columns.values.tolist()).difference(self.already_binary_cols))
+            # Encode the rest of the columns
+            self.dummy_encoded_cols = pd.get_dummies(X[self.cols_to_transform])
+        if self.columns:
+            self.cols_to_transform = self.columns
+            # Encode the rest of the columns
+            self.dummy_encoded_cols = pd.get_dummies(X[self.cols_to_transform])
+        return self
+
+    def transform(self, X):
+        # assumes X is a DataFrame
+        # Remove the encoded columns from original
+        X_transform = X[list(set(X.columns.values.tolist()).difference(self.cols_to_transform))]
+        # Merge on encoded cols
+        X_transform = pd.merge(X_transform, self.dummy_encoded_cols, left_index=True, right_index=True)
+
+        return X_transform
+
+    def df_binary_columns_list(df):
+        """ Returns a list of binary columns (unique values are either 0 or 1)"""
+        binary_cols = [col for col in df if
+               df[col].dropna().value_counts().index.isin([0,1]).all()]
+        return binary_cols    
 
 
 class ZeroFillTransformer(TransformerMixin):
