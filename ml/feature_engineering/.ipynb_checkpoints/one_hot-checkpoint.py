@@ -1,6 +1,70 @@
 import pandas as pd
 import numpy as np
 
+
+def feature_value_match_dict_from_column_names(column_names, 
+                                               prefix=None, suffix=None,
+                                               col_name_to_feature_vals_delimiter='_match_for: ',
+                                               feature_vals_delimiter=', '):
+    """Given a list of column names of the form COLUMN_NAME_match_for: FEATURE_VALUE1
+    FEATURE_VALUE2, FEATURE_VALUE3 return a dictionary map of the form {COLUMN_NAME:
+    [FEATURE_VALUE1, FEATURE_VALUE2, FEATURE_VALUE3]}. Optional arguments for column 
+    prefix, suffix, col_to_feature_delimiter and feature_value_delimeter
+    
+    Parameters
+    ----------
+    column_names: list[str]
+        A list of string column names for which to extract to a dictionary
+        of the form {column_name:[list of feature values]}
+    prefix: str
+        A string prefix to remove from the created columns
+    suffix: str
+        A string suffix to from the created columns
+    col_name_to_feature_vals_delimiter : str, Default = '_match_for: '
+        The string delimiter that seperates the column features values from 
+        the column name
+    feature_vals_delimiter: str, Default = ', '
+        The string delimiter that seperates the features values from 
+        each other
+        
+    Example
+    ---------
+    feature_value_match_dict_from_column_names([
+    'Sparse_feature_aggregation_Claim Classification_1mo_match_for: Catastrophic',
+    'Sparse_feature_aggregation_Injury Type_1mo_match_for: Permanent Partial-Unscheduled',
+    'Sparse_feature_aggregation_riss_match_for: 14.0, 17.0, 12.0, 13.0'],
+    
+    prefix='Sparse_feature_aggregation_')
+    
+    >>> {'Claim Classification_1mo': ['Catastrophic'], 
+    'Injury Type_1mo': ['Permanent Partial-Unscheduled'],
+    'riss': ['14.0', '17.0', '12.0', '13.0']}
+    """
+    # If single string column name passed, 
+    # turn it into a list
+    if isinstance(column_names, str):
+        column_names = [column_names]
+    # Remove prefix/suffix if specified
+    if prefix:
+        column_names = [col.replace(prefix, "")
+                  for col 
+                  in column_names]
+    if suffix:
+        column_names = [col.replace(suffix, "")
+                  for col 
+                  in column_names]    # Create empty map
+    match_value_map = {}    
+    # Iterate through column list        
+    for column in column_names:
+        # Split the into column name and feature value
+        column_name, match_values = column.split(col_name_to_feature_vals_delimiter)
+        # Extract just the feature values
+        match_values_list = match_values.split(feature_vals_delimiter)
+        # Add to feature value map
+        match_value_map[column_name] = match_values_list
+    return match_value_map     
+
+
 def get_specific_dummies(df, col_map=None, prefix=None, suffix=None, return_df=True):
     """ Given a mapping of column_name: list of values, one hot the values
     in the column and concat to dataframe. Optional arguments to add prefixes 
