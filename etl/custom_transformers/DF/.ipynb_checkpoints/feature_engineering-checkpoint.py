@@ -204,7 +204,7 @@ class TargetAssociatedFeatureValueAggregator(TransformerMixin):
                  aggregation_method='aggregate',
                  min_mean_target_threshold=0, min_sample_size=0,
                  min_sample_frequency=0, min_weighted_target_threshold=0,
-                 ignore_binary=True):
+                 ignore_binary=True, verbose=True):
 
         self.aggregation_method = aggregation_method
         self.include = include
@@ -255,6 +255,8 @@ class TargetAssociatedFeatureValueAggregator(TransformerMixin):
             Flag to ignore include feature values in columns with binary values [0 or 1] as this is
             redundant to aggregate.
             Default is True
+        verbose: boolean, default is True
+            Verbose output to print status of transformer
         """
 
     def fit(self, X, y):
@@ -281,6 +283,10 @@ class TargetAssociatedFeatureValueAggregator(TransformerMixin):
                                 min_weighted_target_threshold=self.min_weighted_target_threshold,
                                 ignore_binary=self.ignore_binary
                                 )
+        # Check to make sure the one hot dict isn't empty
+        if verbose:
+            if not self.one_hot_dict:
+                print('WARNING:one_hot_dict attribute empty is empty'
         return self
 
     def transform(self, X, y=None):
