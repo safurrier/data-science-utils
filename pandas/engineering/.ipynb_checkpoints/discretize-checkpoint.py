@@ -1,3 +1,6 @@
+import numpy as np
+import pandas as pd
+
 def column_above_or_below_threshold(df, column=None, above_or_below='above',
                                     threshold=None, new_col_name=None, return_df=True):
     """ Return a column with 1 if df[source_col] is above/below a certain threshold.
