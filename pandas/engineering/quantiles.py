@@ -98,7 +98,7 @@ def quantile_binned_feature(df, col=None, quantiles=10, new_col_name=None,
         
         
 def above_quantile_threshold(X, source_col=None, quantile_threshold=None, new_colname=None):
-    """ Return an area with 1 if X[source_col] is above the specified percentile threshold.
+    """ Return an area with 1 if X[source_col] is above the specified quantile threshold.
     Percentile_threshold should in range between 0-1 (e.g. 99th percentile would be .99)
 
     Parameters
@@ -109,11 +109,11 @@ def above_quantile_threshold(X, source_col=None, quantile_threshold=None, new_co
         The column name from which to compute percentile threshold
     percentile_threshold : float
         A value between 0-1 that will act as the threshold for column positive value (1 not 0)
-        E.g. .99 woul indicate 99th percentile. All observations with 1 in the resulting column
-        would be above the 99th percentile threshold. 
+        E.g. .99 woul indicate 99th quantile. All observations with 1 in the resulting column
+        would be above the 99th quantile threshold. 
     new_colname : str
        Name to give the new computed column. If none specified defaults to:
-       source_col + _above_ + percentile_threshold + _percentile
+       source_col + _above_ + quantile + _percentile
 
     Returns
     -------
@@ -122,14 +122,14 @@ def above_quantile_threshold(X, source_col=None, quantile_threshold=None, new_co
     """
     # Create new column name if none specified
     if not new_colname:
-        new_colname = source_col + '_above_' + str(percentile_threshold) + '-percentile'
+        new_colname = source_col + '_above_' + str(quantile_threshold) + '_quantile'
     if not source_col:
-        raise 'No source column to compute percentile threshold from specified'
-        new_colname = source_col + '_above_' + str(percentile_threshold) + '_percentile'
-    if not percentile_threshold:
-        raise 'No source column to percentile threshold specified. Should be float in range 0-1, eg .75'   
+        raise 'No source column to compute quantile threshold from specified'
+        new_colname = source_col + '_above_' + str(quantile_threshold) + '_quantile'
+    if not quantile_threshold:
+        raise 'No source column to quantile threshold specified. Should be float in range 0-1, eg .75'   
         
     # New column is array with 1 where source col is above specified quantile
-    new_col = np.where(X[source_col] > X[source_col].quantile(percentile_threshold), 1, 0)
+    new_col = np.where(X[source_col] > X[source_col].quantile(quantile_threshold), 1, 0)
     return X.assign(**{new_colname: new_col})
         
