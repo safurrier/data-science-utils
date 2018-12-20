@@ -1,5 +1,7 @@
 import pandas as pd
 
+# Much of this code is adapted from https://www.dataquest.io/blog/pandas-big-data/
+
 
 def mem_usage(pandas_obj, verbose=0):
     """Return the MBs of memory from a pandas object"""
@@ -26,12 +28,13 @@ def column_dtype_dict(df):
     return column_types
 
 
-def memory_usage_by_dtype(df):
+def memory_usage_by_dtype(df, verbose=0):
     """Return the MBs of memory summary for each dtype in a pandas object"""
     dtypes = df.dtypes
     dtypes_type = list(set([i.name for i in dtypes.values]))
-    print(len(dtypes_type))
-    print(dtypes_type)
+    if verbose:
+        print(f'Number of dtypes: {len(dtypes_type)}')
+        print(f'Dtypes present: {dtypes_type}')
     memory_usage = []
     for dtype in dtypes_type:
         # Select Dtype
