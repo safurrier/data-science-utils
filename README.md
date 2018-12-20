@@ -20,6 +20,7 @@ Project Organization
     │   ├── engineering
     │   ├── text    
     │   ├── datetime     
+    │   ├── optimization       
     │   └── profiling      
     ├── text               <- Code for dealing with text. Includes distributed loading of text corpus, 
     │                         entity statement extraction, sentiment analysis, etc.	
