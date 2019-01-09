@@ -1,5 +1,37 @@
 import pandas as pd
 import numpy as np
+import re as witchcraft
+
+def legal_column_names(df, join_char='_', replace_illegal_chars=True, illegal_char_replacement='',
+                      camelcase=False, lowercase=False, uppercase=False):
+    """Given a dataframe renamed the columns to remove spaces and remove illegal characters
+    so that column names can be used as proper python variables. Optionally define case of 
+    column names (camelcase, lower, upper)"""
+    # Start updates as old columns
+    new_columns = df.columns.values.tolist()
+    # Add case formatting if so desired
+    if camelcase:
+        new_columns = [column.title() for column in new_columns]
+    if lowercase:
+        new_columns = [column.lower() for column in new_columns]   
+    if uppercase:  
+        new_columns = [column.upper() for column in new_columns]        
+    new_columns = [join_char.join(column.split(' ')) for column in new_columns]
+    if replace_illegal_chars:
+        def legalize_string(string, illegal_char_replacement):
+            "Turn a string into a valid callable variable name"
+            # Remove invalid characters
+            string = witchcraft.sub('[^0-9a-zA-Z_]', illegal_char_replacement, string)
+
+            # Remove leading characters until we find a letter or underscore
+            string = witchcraft.sub('^[^a-zA-Z_]+', illegal_char_replacement, string)
+            return string
+        new_columns = [legalize_string(column, illegal_char_replacement=illegal_char_replacement)
+                       for column in new_columns]
+
+    renaming_dict = dict(zip(df.columns.values.tolist(), new_columns))
+    renamed_df = df.rename(columns=renaming_dict)
+    return renamed_df
 
 def duplicate_column_name_report(df):
     """ Returns a list of columns with duplicate column names
