@@ -1,8 +1,8 @@
 import pandas as pd
 import numpy as np
 
-def data_dictionary(df: pd.DataFrame, number_of_examples: int=3):
-    """Given a dataframe iterate through the columns and extract the datatype as well as specified number of examples"""
+def data_dictionary(df: pd.DataFrame, include_db_storage_type=False, number_of_examples: int=3):
+    """Given a dataframe iterate through the columns compile a basic data dictionary"""
     # For pulling the correct higher level
     # data type from subtype
     dtype_group_dict = {
@@ -22,7 +22,7 @@ def data_dictionary(df: pd.DataFrame, number_of_examples: int=3):
         'datetime64[ns]': 'Time',
         'timedelta[ns]': 'Time',
         'category':'Object'
-    }
+    }   
     
     records = []
     for column in df.columns.values.tolist():
@@ -69,6 +69,14 @@ def data_dictionary(df: pd.DataFrame, number_of_examples: int=3):
             'Constant':constant_value,
             'Potential_Boolean':potential_boolean,
         }
+        if include_db_storage_type:
+            db_storage_dict = {
+                'Numeric':'NUMERIC',
+                'Object':'TEXT',
+                'Boolean':'NUMERIC',
+            }
+            record['DB_Storage_Type'] = db_storage_dict[record['Dtype']]
+                
         column_order = list(record.keys())
         # Pull examples based on the most frequent values
         ex_values = df[column].value_counts().index.values[:number_of_examples].tolist()
