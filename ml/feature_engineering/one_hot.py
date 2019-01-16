@@ -1,11 +1,13 @@
 import pandas as pd
 import numpy as np
+import re as witchcraft
+import warnings
 
 
 def feature_value_match_dict_from_column_names(column_names, 
                                                prefix=None, suffix=None,
-                                               col_name_to_feature_vals_delimiter='_match_for: ',
-                                               feature_vals_delimiter=', '):
+                                               col_name_to_feature_vals_delimiter='_match_for_____',
+                                               feature_vals_delimiter='_'):
     """Given a list of column names of the form COLUMN_NAME_match_for: FEATURE_VALUE1
     FEATURE_VALUE2, FEATURE_VALUE3 return a dictionary map of the form {COLUMN_NAME:
     [FEATURE_VALUE1, FEATURE_VALUE2, FEATURE_VALUE3]}. Optional arguments for column 
@@ -92,20 +94,22 @@ def get_specific_dummies(df, col_map=None, prefix=None, suffix=None, return_df=T
     else:
         return one_hot_cols
     
-def text_match_one_hot(df, column=None, text_phrases=None, new_col_name=None, return_df=False, case=False):
+def text_match_one_hot(df, column=None, text_phrases=None, new_col_name=None, return_df=False, case=False,
+                      supress_warnings: bool=False):
     """Given a dataframe, text column to search and a list of text phrases, return a binary
        column with 1s when text is present and 0 otherwise
     """
     # Ignore regex group match warning
-    import warnings
     warnings.filterwarnings("ignore", 'This pattern has match groups')
     
     # Check params
-    assert column in df.columns.values.tolist(), print(f"Column {column} not found in df columns")
     assert text_phrases, print(f"Must specify 'text_phrases' as a list of strings")
+    if (column not in df.columns.values.tolist()):
+        if not suppress_warnings:
+            warnings.warn(f'Column "{column}" not found in dataframe. No matches attempted')
+            return
 
     # Create regex pattern to match any phrase in list
-
     # The first phrase will be placed in its own groups
     regex_pattern = '({})'.format(text_phrases[0])
 
@@ -123,10 +127,6 @@ def text_match_one_hot(df, column=None, text_phrases=None, new_col_name=None, re
     
     
     matches = df_copy[column].str.contains(regex_pattern, na=False, case=case).astype(int)
-    
-    # One hot where match is True (must use == otherwise NaNs throw error)
-    #one_hot = np.where(matches==True, 1, 0 )
-    
     ## Alter name
     if not new_col_name:
         # If none provided use column name and values matched
@@ -148,28 +148,47 @@ def text_match_one_hot_from_map(df, col_map=None, case=False, prefix=None, suffi
     Example col_map: {'foo':['bar', 'zero']} would search the text in the values of
     'foo' for any matches of 'bar' OR 'zero' the result is a one hot encoded
     column of matches"""
-    one_hot_cols = []
+    # For naming columns
+    def legalize_string(string, illegal_char_replacement):
+        "Turn a string into a valid callable variable name"
+        # Remove invalid characters
+        string = witchcraft.sub('[^0-9a-zA-Z_]', illegal_char_replacement, string)
+
+        # Remove leading characters until we find a letter or underscore
+        string = witchcraft.sub('^[^a-zA-Z_]+', illegal_char_replacement, string)
+        return string
+    
+    one_hot_cols = [] 
     for column, value in col_map.items():
+        # Set descriptive name
+        new_col_name = column+'_match_for_____'+str(value)[1:-1].replace(r"'", "").replace(r", ", "_")
+        new_col_name = legalize_string(new_col_name, '__')
+        
         # Create one hot encoded arrays for each value specified in key column
-        one_hot_column = pd.Series(one_hot_column_text_match(df, column, value, case=case))
+        one_hot_column = pd.Series(one_hot_column_text_match(df, column, value, case=case, suppress_warnings=suppress_warnings))
+        
         # Check if column already exists in df
-        if column+'_match_for: '+str(value)[1:-1].replace(r"'", "") in df.columns.values.tolist():
-            one_hot_column.name = column+'_supplementary_match_for: '+str(value)[1:-1].replace(r"'", "")
+        if new_col_name in df.columns.values.tolist():
+            new_col_name = column+'_supplementary_match_for_____'+str(value)[1:-1].replace(r"'", "").replace(r", ", "_")
+            new_col_name = legalize_string(new_col_name, '__')
+            one_hot_column.name = new_col_name        
         else:
-            # Set descriptive name
-            one_hot_column.name = column+'_match_for: '+str(value)[1:-1].replace(r"'", "")
+            one_hot_column.name = new_col_name
+            
         # add to list of one hot columns
         one_hot_cols.append(one_hot_column)
-    # Concatenate all created arrays together        
+    
+    
+    # Concatenate all created arrays together
     one_hot_cols = pd.concat(one_hot_cols, axis=1)
     if prefix:
         one_hot_cols = one_hot_cols.add_prefix(prefix)
     if suffix:
-        one_hot_cols = one_hot_cols.add_suffix(suffix)       
+        one_hot_cols = one_hot_cols.add_suffix(suffix)
     if return_df:
         return pd.concat([df, one_hot_cols], axis=1)
     else:
-        return one_hot_cols   
+        return one_hot_cols  
     
 def df_group_one_hot(df, cols_to_group, how ='any', new_col_name=None, return_df=False):
     """Given a list of columns, find the intersection of their one hot values
