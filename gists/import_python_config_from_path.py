@@ -15,4 +15,6 @@ import_string = '.'.join(config_loc_path.as_posix().split('/')[:-1]+[config_loc_
 config = importlib.import_module(import_string)
 
 # To use as a dictionary
+# Most config files operate within code like dictionaries 
+# So it's likely good practice to treat them like one
 config = config.__dict__
