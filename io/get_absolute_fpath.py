@@ -1,5 +1,5 @@
 import os
-def get_file_absolute_path(target_fname: str = 'README.md', levels_to_check: int = 10, verbose=0):
+def get_absolute_fpath(target_fname: str = 'README.md', levels_to_check: int = 10, verbose=0):
     """Pass a filename that exists in a directory an unknown number of
     levels higher. Return the string absolute path of the file
     """
