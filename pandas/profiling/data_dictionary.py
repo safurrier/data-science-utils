@@ -108,6 +108,7 @@ def data_dictionary(df: pd.DataFrame, include_db_storage_type=False, number_of_e
                 'Numeric': 'NUMERIC',
                 'Object': 'TEXT',
                 'Boolean': 'NUMERIC',
+                'Time': 'TEXT',				
             }
             record['DB_Storage_Type'] = db_storage_dict[record['Dtype']]
 
