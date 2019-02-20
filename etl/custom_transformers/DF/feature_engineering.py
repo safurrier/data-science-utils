@@ -259,7 +259,7 @@ class TargetAssociatedFeatureValueAggregator(TransformerMixin):
             Verbose output to print status of transformer
         """
 
-    def fit(self, X, y):
+    def fit(self, X, y, verbose=1):
         """
         Parameters
         ----------
@@ -286,7 +286,7 @@ class TargetAssociatedFeatureValueAggregator(TransformerMixin):
         # Check to make sure the one hot dict isn't empty
         if verbose:
             if not self.one_hot_dict:
-                print('WARNING:one_hot_dict attribute empty is empty'
+                print('WARNING:one_hot_dict attribute empty is empty')
         return self
 
     def transform(self, X, y=None):
