@@ -31,7 +31,7 @@ def legal_column_names(df, join_char='_', replace_illegal_chars=True, illegal_ch
 
     renaming_dict = dict(zip(df.columns.values.tolist(), new_columns))
     if verbose > 0:
-        new_name_dict = {key: value for key, value in renaming_dict if key!=value}
+        new_name_dict = {key: value for key, value in renaming_dict.items() if key!=value}
         print(f'The following columns will be renamed:\n{new_name_dict}')
 
     renamed_df = df.rename(columns=renaming_dict)
