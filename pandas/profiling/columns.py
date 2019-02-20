@@ -3,7 +3,7 @@ import numpy as np
 import re as witchcraft
 
 def legal_column_names(df, join_char='_', replace_illegal_chars=True, illegal_char_replacement='',
-                      camelcase=False, lowercase=False, uppercase=False):
+                      camelcase=False, lowercase=False, uppercase=False, verbose=0):
     """Given a dataframe renamed the columns to remove spaces and remove illegal characters
     so that column names can be used as proper python variables. Optionally define case of 
     column names (camelcase, lower, upper)"""
@@ -30,6 +30,10 @@ def legal_column_names(df, join_char='_', replace_illegal_chars=True, illegal_ch
                        for column in new_columns]
 
     renaming_dict = dict(zip(df.columns.values.tolist(), new_columns))
+    if verbose > 0:
+        new_name_dict = {key: value for key, value in renaming_dict if key!=value}
+        print(f'The following columns will be renamed:\n{new_name_dict}')
+
     renamed_df = df.rename(columns=renaming_dict)
     return renamed_df
 
