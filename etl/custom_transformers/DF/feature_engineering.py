@@ -486,7 +486,7 @@ class DFInteractionsTransformer(BaseEstimator, TransformerMixin):
                     except TypeError:
                         display(X[tmp_interaction_terms].dtypes)
                     # Return Column names
-                    col_names = [base_feature+"_*_"+ int_term for int_term in tmp_interaction_terms]
+                    col_names = [base_feature+"_TIMES_"+ int_term for int_term in tmp_interaction_terms]
                     # Turn into DataFrame
                     interaction_terms_scaled_df = pd.DataFrame(interaction_terms_scaled, columns=col_names)
                     # Add to collection
@@ -515,7 +515,7 @@ class DFInteractionsTransformer(BaseEstimator, TransformerMixin):
                     interaction_terms_log_added = base_vector.reshape(base_vector.shape[0], 1) \
                     + log_interaction_features
                     # Return Column names
-                    col_names = ['Log('+base_feature+")_+_Log("+int_term+')' for int_term in tmp_interaction_terms]
+                    col_names = ['LOG_'+base_feature+"_PLUS_LOG_"+int_term for int_term in tmp_interaction_terms]
                     # Turn into DataFrame
                     interaction_terms_log_added_df = pd.DataFrame(interaction_terms_log_added, columns=col_names)
                     # Add to collection
