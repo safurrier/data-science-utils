@@ -21,7 +21,12 @@ def config_dict_from_python_fpath(fpath: str='config.py', include_dunder_keys: b
     # Join on '.' so that it can be imported using importlib
 
     import_string = '.'.join(config_loc_path.as_posix().split('/')[:-1]+[config_loc_path.stem])
-    config = importlib.import_module(import_string).__dict__
+    try:
+        config = importlib.import_module(import_string).__dict__
+    except ModuleNotFoundError as e:
+        print(f'Could not import file at "{config_loc_path.as_posix()}", are you sure this file exists here?')
+        raise e 
+        
     if not include_dunder_keys:
         default_dunders = ['__name__', '__doc__', '__package__', '__loader__', 
                            '__spec__', '__file__', '__cached__', '__builtins__']
