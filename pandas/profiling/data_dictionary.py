@@ -79,7 +79,7 @@ def data_dictionary(df: pd.DataFrame, include_db_storage_type=False, number_of_e
             potential_boolean = False
         # Cardinality computations
         cardinality = df[column].nunique()
-        pct_unique = cardinality / row_count
+        pct_unique = round(cardinality / row_count, 3)
         # Check for potential Primary Key
         # Heuristic based on if >98% unique and if dtype is object or time
         if (pct_unique > .98) & (dtype_group_dict[column_dtype] in ['Object', 'Time']):
@@ -94,7 +94,7 @@ def data_dictionary(df: pd.DataFrame, include_db_storage_type=False, number_of_e
             'Dtype': dtype_group_dict[column_dtype],
             'Memory_Type': column_dtype,
             'Cardinality': cardinality,
-            'Percent_Null': number_of_nulls / row_count,
+            'Percent_Null': round(number_of_nulls / row_count, 3)
             'Percent_Unique': pct_unique,
             'Number_of_Nulls': number_of_nulls,
             'Most_Common_Value': most_common_value,
