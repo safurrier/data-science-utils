@@ -3,7 +3,7 @@ import numpy as np
 import re as witchcraft
 
 def legal_column_names(df, join_char='_', replace_illegal_chars=True, illegal_char_replacement='',
-                      camelcase=False, lowercase=False, uppercase=False):
+                      camelcase=False, lowercase=False, uppercase=False, verbose=0):
     """Given a dataframe renamed the columns to remove spaces and remove illegal characters
     so that column names can be used as proper python variables. Optionally define case of 
     column names (camelcase, lower, upper)"""
@@ -30,6 +30,10 @@ def legal_column_names(df, join_char='_', replace_illegal_chars=True, illegal_ch
                        for column in new_columns]
 
     renaming_dict = dict(zip(df.columns.values.tolist(), new_columns))
+    if verbose > 0:
+        new_name_dict = {key: value for key, value in renaming_dict.items() if key!=value}
+        print(f'The following columns will be renamed:\n{new_name_dict}')
+
     renamed_df = df.rename(columns=renaming_dict)
     return renamed_df
 
@@ -129,4 +133,74 @@ def extract_cols_to_nested_dict(df, col1, col2):
         present_col2_vals = df[df[col1].isin([val])].loc[:, col2].values.tolist()
         nested_dict[val] = present_col2_vals
     return nested_dict
+
+def categoric_or_numeric_columns(df, unique_value_to_total_value_ratio_threshold=.05, text_unique_threshold=.9,
+                      exclude_strings = True, return_dict = False, return_numeric = False, return_text=False,
+                                    return_categoric = True):
+    """ Determine if a column in a dataframe is continous based on a ratio
+    between the number of unique values in a column and the total number of values
+    Low cardinality values will get cut off if above the specified ratio.
+    Optionally specify return_dict to return a dictionary where values are column names
+    and values are boolean True if categoric and false if continouous
+
+    Default ratio threshold is .05
+
+    'exclude_strings' is True by default (i.e. if a column has string values it will be marked
+    as a categoric column). If looking for columns that may be numeric/continuous but
+    first need to be processed, this can be set to False.
+
+    Parameters
+    ----------
+    df : Pandas DataFrame
+        A DataFrame to search columns within
+    unique_value_to_total_value_ratio_threshold : float
+        The maximum ratio of unique values in a column / total observations. Akin to a cardinality ratio.
+        Default is .05, or that anyting with more than 5% of its values being unique will be considered
+        non-categoric.
+    exclude_strings : Boolean
+        Flag to include all columns with any string values as categoric columns. Default is True.
+    return_dict: Boolean
+        Flag to return a dictionary of the form {column: Categoric_Boolean} where the value is True if a column
+        is categoric. Default is False
+    return_categoric: Boolean
+        Flag to return a list of the categoric columns. Default is True.
+    return_numeric: Boolean
+        Flag to return a list of the continuous columns. Default is False
+
+    Returns
+    -------
+    Dict/List
+        A list of the column names that are categoric/continuous OR a dictionary with keys of column names and
+        values True if categoric
+    """
+    from collections import OrderedDict
+    likely_categoric = OrderedDict()
+    for column in df.columns:
+        likely_categoric[column] = 1.*df[column].nunique()/df[column].count() < unique_value_to_total_value_ratio_threshold
+
+        # Check if any of the values in the column are strings.
+        if exclude_strings:
+            # If so, its value should be true to indicate it is categoric
+            if df[column].apply(type).eq(str).any():
+                likely_categoric[column] = True
+
+    likely_text = OrderedDict()
+    for column in df.columns:
+        # Check for unique pct above threshold and value is string
+        likely_text[column] = (1.*df[column].nunique()/df[column].count() > text_unique_threshold) #& isinstance(df[column].values[0], str)
+
+
+    if return_dict:
+        return likely_categoric
+    if return_numeric:
+        continuous_cols = [col for col, value in likely_categoric.items() if not value]
+        return continuous_cols
+    if return_categoric:
+        categoric_cols = [col for col, value in likely_categoric.items() if value]
+        return categoric_cols
+    if return_text:
+        text_cols = [col for col, value in likely_text.items() if value]
+        return text_cols
+    else:
+        print('Please specify valid return option')
 
