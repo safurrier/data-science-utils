@@ -4,6 +4,10 @@ from sklearn.base import TransformerMixin, BaseEstimator
 from sklearn.feature_extraction import DictVectorizer
 from sklearn.preprocessing import FunctionTransformer, StandardScaler, RobustScaler
 from sklearn.preprocessing import Imputer, MultiLabelBinarizer
+from sklearn.impute import SimpleImputer
+from src.utils.pandas.profiling.data_types import df_binary_columns_list
+from functools import reduce
+import warnings
 
 ###############################################################################################################
 # Custom Transformers from PyData Seattle 2017 Talk
@@ -46,17 +50,21 @@ class DFFeatureUnion(BaseEstimator, TransformerMixin):
         Xunion = reduce(lambda X1, X2: pd.merge(X1, X2, left_index=True, right_index=True), Xts)
         return Xunion
 
-
 class DFImputer(TransformerMixin):
     # Imputer but for pandas DataFrames
 
-    def __init__(self, strategy='mean'):
+    def __init__(self, strategy='mean', fill_value=None):
         self.strategy = strategy
         self.imp = None
         self.statistics_ = None
+        self.fill_value = fill_value
+        if (self.strategy == 'constant') & (not self.fill_value):
+            warnings.warn('DFImputer strategy set to "constant" but no fill value provided.'
+                          'By default the fill value will be set to 0')
+            self.fill_value = 0
 
     def fit(self, X, y=None):
-        self.imp = Imputer(strategy=self.strategy)
+        self.imp = SimpleImputer(strategy=self.strategy, fill_value=self.fill_value)
         self.imp.fit(X)
         self.statistics_ = pd.Series(self.imp.statistics_, index=X.columns)
         return self

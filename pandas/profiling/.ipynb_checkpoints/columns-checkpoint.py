@@ -134,10 +134,12 @@ def extract_cols_to_nested_dict(df, col1, col2):
         nested_dict[val] = present_col2_vals
     return nested_dict
 
-def categoric_or_numeric_columns(df, unique_value_to_total_value_ratio_threshold=.05, text_unique_threshold=.9,
-                      exclude_strings = True, return_dict = False, return_numeric = False, return_text=False,
-                                    return_categoric = True):
-    """ Determine if a column in a dataframe is continous based on a ratio
+def select_columns_by_feature_type(df, unique_value_to_total_value_ratio_threshold=.05, text_unique_threshold=.9,
+                      exclude_strings = True, return_dict = False, return_type='categoric'):
+    """ Determine if a column fits into one of the following types: numeric, categoric, datetime, text.
+    set return_type to one of these return_types to return a list of the column names associated.
+    
+    Determination is made based on if a column in the dataframe is continous based on a ratio
     between the number of unique values in a column and the total number of values
     Low cardinality values will get cut off if above the specified ratio.
     Optionally specify return_dict to return a dictionary where values are column names
@@ -173,6 +175,8 @@ def categoric_or_numeric_columns(df, unique_value_to_total_value_ratio_threshold
         A list of the column names that are categoric/continuous OR a dictionary with keys of column names and
         values True if categoric
     """
+    if return_type not in ['categoric', 'numeric', 'text', 'datetime']:
+        warnings.warn("'return_type' must be one of:  ['categoric', 'numeric', 'text', 'datetime']")
     from collections import OrderedDict
     likely_categoric = OrderedDict()
     for column in df.columns:
@@ -188,19 +192,29 @@ def categoric_or_numeric_columns(df, unique_value_to_total_value_ratio_threshold
     for column in df.columns:
         # Check for unique pct above threshold and value is string
         likely_text[column] = (1.*df[column].nunique()/df[column].count() > text_unique_threshold) #& isinstance(df[column].values[0], str)
-
-
+    
+    likely_datetime = []
+    for dtype in [np.datetime64, 'datetime', 'datetime64', np.timedelta64, 'timedelta', 'timedelta64', 'datetimetz']:
+        # Add any datetime columns found to likely_datetime collection
+        time_cols = df.select_dtypes(include=dtype).columns.values.tolist()
+        # Append if not empty
+        if time_cols:
+            likely_datetime.append(time_cols)
+    likely_datetime = np.array(likely_datetime).flatten().tolist()
+                  
     if return_dict:
         return likely_categoric
-    if return_numeric:
-        continuous_cols = [col for col, value in likely_categoric.items() if not value]
-        return continuous_cols
-    if return_categoric:
+    if return_type == 'numeric':
+        numeric_cols = [col for col, value in likely_categoric.items() if (not value) & (col not in likely_datetime)]
+        return numeric_cols
+    elif return_type == 'categoric':
         categoric_cols = [col for col, value in likely_categoric.items() if value]
         return categoric_cols
-    if return_text:
+    elif return_type == 'text':
         text_cols = [col for col, value in likely_text.items() if value]
         return text_cols
+    elf return_type == 'datetime':
+        return likely_datetime
     else:
         print('Please specify valid return option')
 
