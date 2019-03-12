@@ -213,7 +213,7 @@ def select_columns_by_feature_type(df, unique_value_to_total_value_ratio_thresho
     elif return_type == 'text':
         text_cols = [col for col, value in likely_text.items() if value]
         return text_cols
-    elf return_type == 'datetime':
+    elif return_type == 'datetime':
         return likely_datetime
     else:
         print('Please specify valid return option')
