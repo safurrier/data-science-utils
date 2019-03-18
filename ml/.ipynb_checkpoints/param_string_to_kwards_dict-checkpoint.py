@@ -20,7 +20,6 @@ def param_string_to_kwargs_dict(multiline_param_string):
     'colsample_bytree': 0.5,
     'interval': 10}
     """
-    param_string
     params = []
     param_vals = []
     for index, param in enumerate(multiline_param_string.split("\n")):
