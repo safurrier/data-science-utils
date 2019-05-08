@@ -77,3 +77,99 @@ def groupby_agg_features(df: pd.DataFrame,
         return df_copy
     else:
         return groupby_features
+    
+# df_weighted_groupby depends on functions weighted_average_func and weighted_sum_func
+######################################################################################
+def weighted_average_func(datacol, weightscol):
+    """
+    From https://stackoverflow.com/a/33881167
+    A function that returns a function for computing a weighted 
+    groupby mean    
+    """
+    def wavg(group):
+        dd = group[datacol]
+        ww = group[weightscol] * 1.0
+        return (dd * ww).sum() / ww.sum()
+    return wavg
+
+def weighted_sum_func(datacol, weightscol):
+    """
+    From https://stackoverflow.com/a/33881167
+    A function that returns a function for computing a weighted 
+    groupby sum
+    """
+    def wavg(group):
+        dd = group[datacol]
+        ww = group[weightscol] * 1.0 # To Float
+        return (dd * ww).sum() 
+    return wavg
+
+
+def df_weighted_groupby(df, 
+                        groupbycol: list = None,
+                        weightscol:str = None,
+                        agg_func: str = 'mean',
+                        datacols:str = None, 
+                        keep_weights:bool = True, 
+                        rename_cols:bool = True, 
+           ):
+    """
+    Apply a weighted groupby mean/sum
+
+    Parameters
+    ----------
+    df : df
+        A pandas DataFrame
+    groupby_cols : list
+        A list of columns to use to group the data by.
+    weightscol : str
+        The column to use as a weight
+    datacols : int/float
+        A list of the columns to apply the weighted aggregation to
+    agg_func: str = 'mean',
+        The aggregate function to apply. 'mean' for weighted average and 'sum' for weighted sum
+    keep_weights:bool = True,
+       A boolean flag return the weights column along with the aggregated columns.
+    rename_cols:bool = True, 
+        Boolean flag to denote automatic renaming of the columns returned
+        
+    Returns
+    -------
+    df_aggregated: Pandas DataFrame
+        The grouped data with the weighted aggregation applied 
+        
+    Example
+    -------
+    df_weighted_groupby(df, 
+    groupbycol='Primary_Key', 
+    weightscol='Sale_Amount',
+    datacols=['Transactions'],
+    keep_weights = False)
+    """    
+    if agg_func == 'mean':
+        func = weighted_average_func
+    elif agg_func == 'sum':
+        func = weighted_sum_func
+    grouped = df.groupby(groupbycol)
+    df_aggregated = grouped.agg({weightscol:sum})
+    #datacols = [cc for cc in df.columns if cc not in [groupbycol, weightscol]]
+    for dcol in datacols:
+        try:
+            wavg_f = func(dcol, weightscol)
+            df_aggregated[dcol] = grouped.apply(wavg_f)
+        except TypeError:  # handle non-numeric columns
+            raise f'Non Numeric data encountered in colum "{dcol}"'
+    # Drop weights col if specified
+    if not keep_weights:
+        df_aggregated.drop(labels=weightscol, axis=1, inplace=True)
+    # Rename as weighted average suffix
+    if rename_cols:
+        renamed_cols = [
+            col+f'_{weightscol}_Weighted_'+function
+            if col in datacols
+            else col
+            for col 
+            in df_aggregated.columns            
+            ]   
+        df_aggregated.columns = renamed_cols
+    return df_aggregated    
