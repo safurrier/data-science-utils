@@ -165,7 +165,7 @@ def df_weighted_groupby(df,
     # Rename as weighted average suffix
     if rename_cols:
         renamed_cols = [
-            col+f'_{weightscol}_Weighted_'+function
+            col+f'_{weightscol}_Weighted_'+ agg_func
             if col in datacols
             else col
             for col 

@@ -259,7 +259,7 @@ class TargetAssociatedFeatureValueAggregator(TransformerMixin):
             Verbose output to print status of transformer
         """
 
-    def fit(self, X, y):
+    def fit(self, X, y, verbose=1):
         """
         Parameters
         ----------
@@ -286,7 +286,7 @@ class TargetAssociatedFeatureValueAggregator(TransformerMixin):
         # Check to make sure the one hot dict isn't empty
         if verbose:
             if not self.one_hot_dict:
-                print('WARNING:one_hot_dict attribute empty is empty'
+                print('WARNING:one_hot_dict attribute empty is empty')
         return self
 
     def transform(self, X, y=None):
@@ -486,7 +486,7 @@ class DFInteractionsTransformer(BaseEstimator, TransformerMixin):
                     except TypeError:
                         display(X[tmp_interaction_terms].dtypes)
                     # Return Column names
-                    col_names = [base_feature+"_*_"+ int_term for int_term in tmp_interaction_terms]
+                    col_names = [base_feature+"_TIMES_"+ int_term for int_term in tmp_interaction_terms]
                     # Turn into DataFrame
                     interaction_terms_scaled_df = pd.DataFrame(interaction_terms_scaled, columns=col_names)
                     # Add to collection
@@ -515,7 +515,7 @@ class DFInteractionsTransformer(BaseEstimator, TransformerMixin):
                     interaction_terms_log_added = base_vector.reshape(base_vector.shape[0], 1) \
                     + log_interaction_features
                     # Return Column names
-                    col_names = ['Log('+base_feature+")_+_Log("+int_term+')' for int_term in tmp_interaction_terms]
+                    col_names = ['LOG_'+base_feature+"_PLUS_LOG_"+int_term for int_term in tmp_interaction_terms]
                     # Turn into DataFrame
                     interaction_terms_log_added_df = pd.DataFrame(interaction_terms_log_added, columns=col_names)
                     # Add to collection
@@ -544,3 +544,42 @@ class DFInteractionsTransformer(BaseEstimator, TransformerMixin):
             return X_transformed
         except AttributeError:
             print('Must use .fit() method before transforming')            
+            
+class Log1pTransformer(TransformerMixin):
+    
+    def __init__(self, columns: list=None):
+        self.columns = columns
+        self.present_cols = None
+
+    def fit(self, X, y=None, columns=None):
+        if columns:
+            self.columns = columns
+        if self.columns:
+            present_cols = [col for col in self.columns if col in X.columns.values]
+            missing_cols = list(set(present_cols).difference(X.columns.values))
+            if missing_cols:
+                print(f'WARNING: The following columns were passed to be log transformed by are missing: {missing_cols}')
+            self.present_cols = present_cols
+        return self
+
+    def transform(self, X):
+        # assumes X is a DataFrame
+        # Subset to columns
+        if self.present_cols:
+            X_subset = X[self.present_cols]
+        else:
+            X_subset = X
+        # Apply log + 1 transform
+        X_log = np.log1p(X_subset)
+        
+        # Get new col names
+        new_col_names = [
+            'LOG_'+col
+            for col 
+            in X_log.columns.values.tolist()
+        ]
+        X_log.columns = new_col_names
+        
+        # Return to orignal frame
+        X_new =  pd.merge(X, X_log, left_index=True, right_index=True)
+        return X_new            

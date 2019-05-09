@@ -544,3 +544,42 @@ class DFInteractionsTransformer(BaseEstimator, TransformerMixin):
             return X_transformed
         except AttributeError:
             print('Must use .fit() method before transforming')            
+            
+class Log1pTransformer(TransformerMixin):
+    
+    def __init__(self, columns: list=None):
+        self.columns = columns
+        self.present_cols = None
+
+    def fit(self, X, y=None, columns=None):
+        if columns:
+            self.columns = columns
+        if self.columns:
+            present_cols = [col for col in self.columns if col in X.columns.values]
+            missing_cols = list(set(present_cols).difference(X.columns.values))
+            if missing_cols:
+                print(f'WARNING: The following columns were passed to be log transformed by are missing: {missing_cols}')
+            self.present_cols = present_cols
+        return self
+
+    def transform(self, X):
+        # assumes X is a DataFrame
+        # Subset to columns
+        if self.present_cols:
+            X_subset = X[self.present_cols]
+        else:
+            X_subset = X
+        # Apply log + 1 transform
+        X_log = np.log1p(X_subset)
+        
+        # Get new col names
+        new_col_names = [
+            'LOG_'+col
+            for col 
+            in X_log.columns.values.tolist()
+        ]
+        X_log.columns = new_col_names
+        
+        # Return to orignal frame
+        X_new =  pd.merge(X, X_log, left_index=True, right_index=True)
+        return X_new            
