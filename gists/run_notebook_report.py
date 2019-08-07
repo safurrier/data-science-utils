@@ -64,10 +64,10 @@ def run_notebook_report(notebook_import_path: str = None,
 
     Example
     -------
-    python run_notebook_report.py --notebook_import_path notebooks/monthly_viz.ipnyb \
-    --config_path config/monthly_viz_config.py\
-    --parameterized_notebook_export_path reports/monthly_viz/november.ipnyb\
-    --report_export_path reports/monthly_viz/november.html\
+    python run_notebook_report.py --notebook_import_path='notebooks/monthly_viz.ipnyb' \
+    --config_path='config/monthly_viz_config.py' \
+    --parameterized_notebook_export_path='reports/monthly_viz/november.ipnyb'\
+    --report_export_path='reports/monthly_viz/november.html'
     """
 
     # Turn string paths into pathlib Paths
@@ -77,6 +77,11 @@ def run_notebook_report(notebook_import_path: str = None,
         parameterized_notebook_export_path)
     report_export_path = pathlib.Path(report_export_path)
 
+    if verbose:
+        click.echo(
+            f'Attempting to execute template notebook at {notebook_import_path.as_posix()}'
+            f'using papermill with paremeters set in config file at {config_path.as_posix()}\n'
+        )
     # Execute notebook using papermill
     pm.execute_notebook(
         notebook_import_path.as_posix(),
@@ -85,6 +90,10 @@ def run_notebook_report(notebook_import_path: str = None,
         parameters=dict(
             config_path=config_path.as_posix())
     )
+    if verbose:
+        click.echo(
+            f'Outputted executed notebook at notebook at {parameterized_notebook_export_path.as_posix()}\n'
+        )
     # %% [markdown]
     # Convert to html report
     resp = subprocess.run(
@@ -92,8 +101,8 @@ def run_notebook_report(notebook_import_path: str = None,
 
     # If there was an error print this
     if resp.check_returncode():
-        print(
-            f'Error converting {parameterized_notebook_export_path.as_posix()} to html report')
+        click.echo(
+            f'Error converting {parameterized_notebook_export_path.as_posix()} to html report \n')
     # Otherwise move the outputted report and alert the use
     else:
         # Move the outputted file to where the script specifies
@@ -101,8 +110,8 @@ def run_notebook_report(notebook_import_path: str = None,
             "ipynb", "html"), report_export_path.as_posix())
 
         if verbose:
-            print(
-                f'Output notebook at html without code at {report_export_path.as_posix()}')
+            click.echo(
+                f'Output notebook at html without code at {report_export_path.as_posix()} \n')
 
 
 if __name__ == '__main__':
