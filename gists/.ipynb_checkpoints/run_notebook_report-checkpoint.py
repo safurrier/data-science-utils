@@ -80,7 +80,7 @@ def run_notebook_report(notebook_import_path: str = None,
     if verbose:
         click.echo(
             f'Attempting to execute template notebook at {notebook_import_path.as_posix()}'
-            f'using papermill with paremeters set in config file at {config_path.as_posix()}\n'
+            f' using papermill with paremeters set in config file at {config_path.as_posix()}\n'
         )
     # Execute notebook using papermill
     pm.execute_notebook(
@@ -92,19 +92,22 @@ def run_notebook_report(notebook_import_path: str = None,
     )
     if verbose:
         click.echo(
-            f'Outputted executed notebook at notebook at {parameterized_notebook_export_path.as_posix()}\n'
+            f'Outputted executed notebook at {parameterized_notebook_export_path.as_posix()}\n'
         )
     # %% [markdown]
     # Convert to html report
     resp = subprocess.run(
         f"jupyter nbconvert {parameterized_notebook_export_path.as_posix()} --to=html --TemplateExporter.exclude_input=True")
 
-    # If there was an error print this
+    # If there was an error print
     if resp.check_returncode():
         click.echo(
             f'Error converting {parameterized_notebook_export_path.as_posix()} to html report \n')
     # Otherwise move the outputted report and alert the use
     else:
+        # # Remove old report if present
+        # if os.path.isfile(report_export_path.as_posix()):
+        #     os.remove(report_export_path.as_posix())
         # Move the outputted file to where the script specifies
         os.rename(parameterized_notebook_export_path.as_posix().replace(
             "ipynb", "html"), report_export_path.as_posix())
