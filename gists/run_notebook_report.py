@@ -25,6 +25,7 @@ os.chdir(get_absolute_fpath())
 @click.option('--config_path', default=None)
 @click.option('--notebook_export_path', default=None)
 @click.option('--report_export_path', default=None)
+@click.option('--kernel_name', default=None)
 @click.option('--verbose', default=1)
 def run_notebook_report(notebook_import_path: str = None,
                         config_path: str = None,
