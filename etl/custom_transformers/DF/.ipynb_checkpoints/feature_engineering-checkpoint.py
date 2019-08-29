@@ -13,7 +13,7 @@ class DFLookupTable(TransformerMixin):
 
     Parameters
     ----------
-    feature : list
+    feature : list/str
         A list of the column name(s) of the feature to look up. This is what the lookup table will
         be left joined on.
     lookup_key: list
@@ -31,9 +31,14 @@ class DFLookupTable(TransformerMixin):
         The path to the table to use as a lookup
     table_format : str
         The type of file the lookup table is. Currently only accepts
-        'csv' (default) or 'pickle'
+        'csv' (default), 'pickle', 'hdf'
+    table_key : str
+        The key to pass for reading in the table. Currently used only when table format
+        is 'hdf'
     merge_as_string: Boolean
         Force the key columns to be cast to string before joining
+    merge_dtype: int, str, float, etc
+        The dtype to explicitly cast the join keys to before merging
     add_prefix: str
         A prefix to add onto the new columns added from the lookup table
     add_suffix: str
@@ -46,7 +51,10 @@ class DFLookupTable(TransformerMixin):
                  table_lookup_keep_cols=None, 
                  table_lookup_exclude_cols=None,
                  table_path=None,
-                 table_format='csv', merge_as_string=False,
+                 table_format='csv',
+                 table_key=None,
+                 merge_as_string=False, 
+                 merge_dtype=None,
                 add_prefix=None, add_suffix=None):
         # If argument is a single string, put it in a 
         # list with one value
@@ -54,8 +62,10 @@ class DFLookupTable(TransformerMixin):
             feature = [feature]
         self.feature = feature
         self.table_path = table_path
+        self.table_key = table_key
         self.table_format = table_format
         self.merge_as_string = merge_as_string
+        self.merge_dtype = merge_dtype        
         self.add_prefix = add_prefix
         self.add_suffix = add_suffix        
         # Determine which column to left join the lookup table on
@@ -74,6 +84,8 @@ class DFLookupTable(TransformerMixin):
             self.lookup_table = pd.read_csv(self.table_path)
         elif self.table_format == 'pickle':
             self.lookup_table =  pd.read_pickle(self.table_path) 
+        elif self.table_format == 'hdf':
+            self.lookup_table =  pd.read_hdf(self.table_path, key=self.table_key)             
             
         # If no keep columns specified, keep all columns from lookup table
         if table_lookup_keep_cols:
@@ -116,6 +128,11 @@ class DFLookupTable(TransformerMixin):
             X[self.feature] = X[self.feature].astype(str)
             self.lookup_table[self.lookup_key] = \
             self.lookup_table[self.lookup_key].astype(str)
+
+        if self.merge_dtype:
+            X[self.feature] = X[self.feature].astype(self.merge_dtype)
+            self.lookup_table[self.lookup_key] = \
+            self.lookup_table[self.lookup_key].astype(self.merge_dtype)            
 
         # Determine which columns to keep from lookup table
         # If none specified use all the columns in the lookup table
@@ -185,7 +202,6 @@ class DFLookupTable(TransformerMixin):
             elif self.table_format == 'pickle':
                 self.lookup_table =  pd.read_pickle(self.table_path)
         return self.fit(X, y=y).fitted_data
-
 
 class TargetAssociatedFeatureValueAggregator(TransformerMixin):
     """ Given a dataframe, a set of columns and associative target thresholds,
