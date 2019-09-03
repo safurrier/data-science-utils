@@ -132,4 +132,47 @@ def above_quantile_threshold(X, source_col=None, quantile_threshold=None, new_co
     # New column is array with 1 where source col is above specified quantile
     new_col = np.where(X[source_col] > X[source_col].quantile(quantile_threshold), 1, 0)
     return X.assign(**{new_colname: new_col})
+
+
+def quantile_cutpoints(df, column, quantiles, round_ndigits=None, as_dict=False):
+    """ Given a column and a list of quantiles, return a list of cutpoints for specified quantiles
+
+    Parameters
+    ----------
+    df: pandas.DataFrame
+        The dataframe which holds the data under name `column` to compute cutpoints for
+    column: str
+        String column name to find cutpoints for
+    quantiles: list
+        A list of the quantiles to find values for
+    round_ndigits: int
+        If specified, the number of digits after the decimal to round the cutpoint values to 
+    as_dict: bool
+        If specified, return value is a dictionary of the form {quantile:cutpoint_value}
+
+    Example
+    -------
+    quantile_cutpoints(df=df, 
+    column='Revenue', 
+    quantiles=[.1, .5, .9],
+    round_ndigits=2)
+
+    [2000.25, 10_000.67, 99_000.23]
+    """
+
+    value_cutpoints = []
+    for quantile in quantiles:
+        val = df[column].quantile(
+            q=quantile)
+        # Round if specified
+        if round_ndigits:
+            val = round(val, round_ndigits)
+        
+        # Add to list
+        value_cutpoints.append(val)
+    if as_dict:
+        # Zip to dict and return
+        return zip(dict(quantiles, value_cutpoints))
+    else:
+        return value_cutpoints
         
