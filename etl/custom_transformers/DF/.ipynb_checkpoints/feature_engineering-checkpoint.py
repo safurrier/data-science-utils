@@ -35,6 +35,10 @@ class DFLookupTable(TransformerMixin):
     table_key : str
         The key to pass for reading in the table. Currently used only when table format
         is 'hdf'
+    merge_type: str 
+        The type of merge to use. Default is 'left' merge to base data on 'feature' arg
+        to preserve all rows in the original data even if the key is missing.
+        For options check pandas merge method
     merge_as_string: Boolean
         Force the key columns to be cast to string before joining
     merge_dtype: int, str, float, etc
@@ -53,6 +57,7 @@ class DFLookupTable(TransformerMixin):
                  table_path=None,
                  table_format='csv',
                  table_key=None,
+                 merge_type='left',
                  merge_as_string=False, 
                  merge_dtype=None,
                 add_prefix=None, add_suffix=None):
@@ -65,7 +70,8 @@ class DFLookupTable(TransformerMixin):
         self.table_key = table_key
         self.table_format = table_format
         self.merge_as_string = merge_as_string
-        self.merge_dtype = merge_dtype        
+        self.merge_dtype = merge_dtype
+        self.merge_type = merge_type        
         self.add_prefix = add_prefix
         self.add_suffix = add_suffix        
         # Determine which column to left join the lookup table on
@@ -122,6 +128,9 @@ class DFLookupTable(TransformerMixin):
                 self.lookup_table = pd.read_csv(self.table_path)
             elif self.table_format == 'pickle':
                 self.lookup_table =  pd.read_pickle(self.table_path)
+            elif self.table_format == 'hdf':
+                self.lookup_table =  pd.read_hdf(self.table_path, key=self.table_key)             
+
 
         # Cast dtypes to string if specified
         if self.merge_as_string:
@@ -175,12 +184,12 @@ class DFLookupTable(TransformerMixin):
             # Concat the renamed columns (with suffix added) and the key column
             self.lookup_table = pd.concat([self.lookup_table[keep_cols].add_suffix(self.add_suffix),
                                            self.lookup_table[self.feature]], axis=1)
-
-        # Left join the two
+        
+        # Merge join the two
         new_df = pd.merge(X,
                 self.lookup_table,
                 on=self.feature,
-                          how='left')
+                          how=self.merge_type)
 
         # Assign to attribute
         self.fitted_data = new_df
@@ -201,6 +210,9 @@ class DFLookupTable(TransformerMixin):
                 self.lookup_table = pd.read_csv(self.table_path)
             elif self.table_format == 'pickle':
                 self.lookup_table =  pd.read_pickle(self.table_path)
+            elif self.table_format == 'hdf':
+                self.lookup_table =  pd.read_hdf(self.table_path, key=self.table_key)             
+
         return self.fit(X, y=y).fitted_data
 
 class TargetAssociatedFeatureValueAggregator(TransformerMixin):
