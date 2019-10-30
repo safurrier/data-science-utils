@@ -2,8 +2,14 @@ import pandas as pd
 import numpy as np
 import re as witchcraft
 
-def legal_column_names(df, join_char='_', replace_illegal_chars=True, illegal_char_replacement='',
-                      camelcase=False, lowercase=False, uppercase=False, verbose=0):
+def legal_column_names(df:pd.DataFrame, 
+                       join_char:str='_', 
+                       replace_illegal_chars:bool=True,
+                       illegal_char_replacement:str='',
+                       camelcase:bool=False, 
+                       lowercase:bool=False, 
+                       uppercase:bool=False,
+                       verbose:int=0) -> pd.DataFrame:
     """Given a dataframe renamed the columns to remove spaces and remove illegal characters
     so that column names can be used as proper python variables. Optionally define case of 
     column names (camelcase, lower, upper)"""
