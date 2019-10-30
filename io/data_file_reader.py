@@ -1,30 +1,33 @@
 import pandas as pd
+import pathlib
+from typing import List
 
-def read_data(fpath: str, keep_cols: list=None, file_format='csv', reader_kwargs: dict = {}, ):
+def read_data(fpath: str, keep_cols: List[str]=None, reader_kwargs: dict = {}, ) -> pd.DataFrame:
     """Read in a file with a key column and subsequent associated data.
     Parameters for reading in added as dict to reader_kwargs param
     """
-    # Check for file format
-    assert file_format in ['csv', 'pickle', 'pkl', 'xlsx', 'excel'], \
-    'File Formats supported are one of "csv", "pickle" or "excel"'
     # Check if extension in supported file format
-    extension = fpath.split('.')[1]
-    if extension not in ['csv', 'pickle', 'pkl', 'xlsx', 'excel']:
-        print('Warning, are you sure the specified file format is supported?')
+    fpath = pathlib.Path(fpath)
+    file_format = fpath.suffix
+    if file_format not in ['.csv', '.pickle', '.pkl', '.xlsx', '.hdf']:
+        print(f'File format "{file_format}" does not appear to be a supported file format')
+        raise ValueError
     
     # Determine input file type and pandas reader
-    if file_format == 'csv':
+    if file_format == '.csv':
         reader = pd.read_csv
-    elif (file_format == 'pickle') | (file_format == 'pkl'):
+    elif (file_format == '.pickle') | (file_format == '.pkl'):
         reader = pd.read_pickle
-    elif (file_format == 'excel') | (file_format == 'xlsx'):
+    elif (file_format == '.xlsx'):
         reader = pd.read_excel
+    elif (file_format == '.hdf'):
+        reader = pd.read_excel        
 
     # Read in filepath:
     try:
-        data = reader(fpath, **reader_kwargs)
+        data = reader(fpath.as_posix(), **reader_kwargs)
     except FileNotFoundError as e:
-        print(f'Unable to read in {fpath}. Check the file_format and file path')
+        print(f'Unable to read in {fpath.as_posix()}. Check the file_format and file path')
         raise e
     
     missing_cols = []
