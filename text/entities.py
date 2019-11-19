@@ -46,19 +46,18 @@ def corpus_entity_counts(corpus, include=None, exclude=None):
     # Entity Dataframe
     df = (pd.DataFrame.from_dict(entity_counts, orient='index')
           .reset_index()
-          .rename(columns={'index':'Entity', 0:'Count'})
+          .rename(columns={'index': 'Entity', 0: 'Count'})
           .sort_values(by='Count', ascending=False)
           .reset_index(drop=True))
 
     return df
 
 
-
 def entity_statements(doc, entity, ignore_entity_case=True,
                       min_n_words=1, max_n_words=300, return_entity=False):
     """
     Extract sentences with a specified entity present in it
-    Modified from source code of Textacy's textacy.extract.semistructured_statements()
+
 
     Args:
         doc (``textacy.Doc`` or ``spacy.Doc``)
@@ -70,10 +69,12 @@ def entity_statements(doc, entity, ignore_entity_case=True,
 
     Yields:
         (``spacy.Span`` or ``spacy.Token``) or (``spacy.Span`` or ``spacy.Token``, ``spacy.Span`` or ``spacy.Token``):
-        dependin on if return_entity is enabled or not
+        depending on if return_entity is enabled or not
 
 
     Notes:
+        Modified from source code of Textacy's textacy.extract.semistructured_statements()
+
         Inspired by N. Diakopoulos, A. Zhang, A. Salway. Visual Analytics of
         Media Frames in Online News and Blogs. IEEE InfoVis Workshop on Text
         Visualization. October, 2013.
@@ -84,16 +85,13 @@ def entity_statements(doc, entity, ignore_entity_case=True,
     """
     if ignore_entity_case is True:
         entity_toks = entity.lower().split(' ')
-        get_tok_text = lambda x: x.lower_
+        def get_tok_text(x): return x.lower_
     else:
         entity_toks = entity.split(' ')
-        get_tok_text = lambda x: x.text
+        def get_tok_text(x): return x.text
 
     first_entity_tok = entity_toks[0]
     n_entity_toks = len(entity_toks)
-    #cue = cue.lower()
-    #cue_toks = cue.split(' ')
-    #n_cue_toks = len(cue_toks)
 
     def is_good_last_tok(tok):
         if tok.is_punct:
@@ -123,6 +121,7 @@ def entity_statements(doc, entity, ignore_entity_case=True,
                 yield (sent.orth_)
             break
 
+
 def list_of_entity_statements(corpus, entity):
     """
     Given an entity and a textacy corpus, return a list of all the sentences in which this entity occurs
@@ -141,8 +140,9 @@ def list_of_entity_statements(corpus, entity):
     entity_sentences = [list(entity_statements(doc, entity=entity))
                         for doc
                         in corpus
-                        if list(entity_statements(doc, entity=entity))] # If statement that removes null sentences
+                        if list(entity_statements(doc, entity=entity))]  # If statement that removes null sentences
 
-    entity_sentences = [item for sublist in entity_sentences for item in sublist]
+    entity_sentences = [
+        item for sublist in entity_sentences for item in sublist]
 
     return entity_sentences
