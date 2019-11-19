@@ -1,4 +1,4 @@
-def test_dictionary_keys(dictionary, required_keys, verbose=0):
+def assert_dictionary_keys(dictionary, required_keys, verbose=0):
     missing_keys = []
     for key in required_keys:
         if key not in dictionary.keys():
@@ -12,7 +12,7 @@ def test_dictionary_keys(dictionary, required_keys, verbose=0):
         return True
 
 
-def test_nested_dictionary_keys(dictionary, nested_keys_dict, verbose=0):
+def assert_nested_dictionary_keys(dictionary, nested_keys_dict, verbose=0):
     missing_keys = []
     missing_nested_keys = []
     for key, nested_keys in nested_keys_dict.items():
